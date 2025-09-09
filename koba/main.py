@@ -65,6 +65,13 @@ def main(file, char_aspect, logging_level, save_blocks):
     ppc_w = math.ceil(width / chars_width)
     ppc_h = math.ceil(height / chars_height)
     
+    # add padding to 
+    pad_h = (chars_height * ppc_h) - height
+    pad_w = (chars_width * ppc_w) - width
+    if pad_h > 0 or pad_w > 0:
+        img_arr = np.pad(img_arr, ((0, pad_h), (0, pad_w)), mode='constant', constant_values=255)
+        height, width = img_arr.shape
+    
     logging.info(f"Image will be {chars_width}x{chars_height} chars.")
     logging.info(f"Every char has to represent {ppc_w}x{ppc_h} pixels.")
     logging.info(f"Max chars: {chars_width*chars_height}")
@@ -94,11 +101,14 @@ def main(file, char_aspect, logging_level, save_blocks):
 
     results = [""] * len(blocks)
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        futures = [executor.submit(process_block, arg) for arg in block_args]
-        for i, future in enumerate(concurrent.futures.as_completed(futures), 1):
-            idx = futures.index(future)
+        future_to_idx = {
+            executor.submit(process_block, arg): idx
+            for idx, arg in enumerate(block_args)
+        }
+        for i, future in enumerate(concurrent.futures.as_completed(future_to_idx), 1):
+            idx = future_to_idx[future]
             results[idx] = future.result()
-            print(f"Processed {i}/{len(futures)} blocks", end="\r", flush=True)
+            print(f"Processed {i}/{len(future_to_idx)} blocks", end="\r", flush=True)
 
     all_chars = "".join(results)
     print()
