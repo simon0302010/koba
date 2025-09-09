@@ -16,7 +16,8 @@ dependencies = [
     "numpy==2.0.2",
     "Pillow==9.5.0",
     "click==8.1.8",
-    "matplotlib"
+    "matplotlib",
+    "scikit-image==0.21.0"
 ]
 
 classifiers = [

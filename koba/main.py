@@ -8,7 +8,7 @@ import numpy as np
 from PIL import Image, UnidentifiedImageError
 
 from . import __version__
-from .core import charsets
+from .core import charsets, unify
 
 
 logging.basicConfig(
@@ -29,7 +29,7 @@ logging.basicConfig(
     )
 )
 @click.option(
-    "--char-aspect", default=1.6, show_default=True,
+    "--char-aspect", default=1.4, show_default=True,
     help="Set character height/width ratio."
 )
 @click.option(
@@ -45,7 +45,7 @@ def main(file, char_aspect, logging_level, save_blocks):
     
     # loading file and reading basic info
     try:
-        img = Image.open(file)
+        img = Image.open(file).convert("L")
     except UnidentifiedImageError:
         logging.critical(f"Unsupported or unreadable image format for file: {file}.")
         sys.exit(1)

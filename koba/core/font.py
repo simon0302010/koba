@@ -73,7 +73,8 @@ def get_monospace_font():
     for font in fm.fontManager.ttflist:
         if "dejavusansmono" in font.name.replace(" ", "").lower():
             return font.fname
-        
+
+# results are weird
 def get_font_aspect(font_path):
     font = ImageFont.truetype(font_path, 16)
     width, height = font.getsize("0")
