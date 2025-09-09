@@ -12,7 +12,20 @@ PREFERRED = [
     "Cascadia"
 ]
 
-def get_fonts(preferred=False, monospace=False):
+STYLE_RANK = {
+    "Regular": 0,
+    "Book": 1,
+    "Normal": 2,
+    "Medium": 3,
+    "SemiBold": 4,
+    "Bold": 5,
+    "ExtraBold": 6,
+    "Light": 7,
+    "ExtraLight": 8,
+    "Thin": 9,
+}
+
+def get_fonts(preferred=False):
     fonts = []
     seen_names = set()
     font_list = fm.fontManager.ttflist
@@ -30,20 +43,7 @@ def get_fonts(preferred=False, monospace=False):
 
     return [font.fname for font in fonts]
 
-def get_best_candidate(font_paths):
-    style_rank = {
-        "Regular": 0,
-        "Book": 1,
-        "Normal": 2,
-        "Medium": 3,
-        "SemiBold": 4,
-        "Bold": 5,
-        "ExtraBold": 6,
-        "Light": 7,
-        "ExtraLight": 8,
-        "Thin": 9,
-    }
-    
+def get_best_candidate(font_paths):    
     # only monospace fonts that aren't italic
     candidates = [
         p for p in font_paths
@@ -52,7 +52,7 @@ def get_best_candidate(font_paths):
     
     # rank fonts
     def score(path):
-        for style, rank in style_rank.items():
+        for style, rank in STYLE_RANK.items():
             if style.lower() in path.lower():
                 return rank
         return 99
@@ -60,12 +60,8 @@ def get_best_candidate(font_paths):
     best = min(candidates, key=score, default=None)
     return best
 
-# very slow
+# very slow, will prob not use
 def is_monospace(path, test_chars="ilMW"):
     font = ImageFont.truetype(path, 16)
     widths = [font.getsize(c)[0] for c in test_chars]
     return all(w == widths[0] for w in widths)
-
-if __name__ == "__main__":
-    font_paths = get_fonts(preferred=True)
-    print(get_best_candidate(font_paths))

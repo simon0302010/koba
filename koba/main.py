@@ -6,7 +6,8 @@ import click
 import numpy as np
 from PIL import Image, UnidentifiedImageError
 
-from . import similarity, __version__
+from . import __version__
+from .core import similarity
 
 
 logging.basicConfig(
