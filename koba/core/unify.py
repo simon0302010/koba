@@ -3,10 +3,17 @@ from PIL import ImageFont, ImageDraw, Image
 from skimage.metrics import structural_similarity as ssim
 import logging
 
-from . import font, charsets
+from . import font
 
 
 font_path = font.get_monospace_font()
+
+font_cache = {}
+def get_font(font_path, size):
+    key = (font_path, size)
+    if key not in font_cache:
+        font_cache[key] = ImageFont.truetype(font_path, size)
+    return font_cache[key]
 
 def compare_character(char, block_arr):
     height, width = block_arr.shape
@@ -17,7 +24,7 @@ def compare_character(char, block_arr):
     best_size = min_size
     while min_size <= max_size:
         mid = (min_size + max_size) // 2
-        font = ImageFont.truetype(font_path, mid)
+        font = get_font(font_path, mid)
         bbox = font.getbbox(char)
         w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
         if w <= width and h <= height:
@@ -27,7 +34,7 @@ def compare_character(char, block_arr):
             max_size = mid - 1
 
     # render at best size
-    font = ImageFont.truetype(font_path, best_size)
+    font = get_font(font_path, best_size)
     img = Image.new("L", (width, height), color=255)
     draw = ImageDraw.Draw(img)
     bbox = font.getbbox(char)
@@ -43,13 +50,32 @@ def compare_character(char, block_arr):
         img = img.resize((block_arr.shape[1], block_arr.shape[0]), Image.Resampling.LANCZOS)
         char_arr = np_array(img)
         
-    img.show()
-    
     try:
-        score = ssim(block_arr, char_arr, data_range=255)
+        min_side = min(block_arr.shape)
+        win_size = min(7, min_side)
+        if win_size % 2 == 0:
+            win_size -= 1
+        if win_size < 3:
+            win_size = 3
+        score = ssim(block_arr, char_arr, data_range=255, win_size=win_size)
+        if isinstance(score, tuple):
+            score = score[0]
     except Exception as e:
         logging.critical(e)
         score = 0.0
         
     similarity = max(0.0, score)
     return similarity
+    
+    
+# TODO: implement early stopping
+def get_character(img_arr, characters):
+    max_similarity = 0.0
+    best_match = " "
+    for character in characters:
+        similarity = compare_character(character, img_arr)
+        if similarity > max_similarity:
+            max_similarity = similarity
+            best_match = character
+            
+    return best_match

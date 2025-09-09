@@ -1,7 +1,9 @@
 import os
 import sys
 import math
+import time
 import logging
+import concurrent.futures
 
 import click
 import numpy as np
@@ -17,6 +19,10 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M",
     level=logging.ERROR
 )
+
+def process_block(args):
+    block, characters = args
+    return unify.get_character(block, characters)
 
 @click.command("koba")
 @click.version_option(__version__)
@@ -79,3 +85,21 @@ def main(file, char_aspect, logging_level, save_blocks):
         for idx, block in enumerate(blocks):
             img_block = Image.fromarray(block)
             img_block.save(os.path.join(blocks_dir, f"block_{idx:04d}.png"))
+    
+    characters = charsets.get_range(65, 90)
+    all_chars = ""
+
+    # prepare arguments
+    block_args = [(block, characters) for block in blocks]
+
+    results = [""] * len(blocks)
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        futures = [executor.submit(process_block, arg) for arg in block_args]
+        for i, future in enumerate(concurrent.futures.as_completed(futures), 1):
+            idx = futures.index(future)
+            results[idx] = future.result()
+            print(f"Processed {i}/{len(futures)} blocks", end="\r", flush=True)
+
+    all_chars = "".join(results)
+    print()
+    print(all_chars)
