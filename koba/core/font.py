@@ -1,3 +1,5 @@
+# will probably not be used but still kept
+
 import matplotlib.font_manager as fm
 from PIL import ImageFont
 
@@ -34,7 +36,7 @@ def get_fonts(preferred=False):
         if font.name in seen_names:
             continue
         if preferred:
-            if any(name.lower() in font.name.lower() for name in PREFERRED):
+            if any(name.lower() in font.name.lower() for name in PREFERRED) or any(name.lower() in font.fname.lower() for name in PREFERRED):
                 fonts.append(font)
                 seen_names.add(font.name)
         else:
@@ -65,3 +67,14 @@ def is_monospace(path, test_chars="ilMW"):
     font = ImageFont.truetype(path, 16)
     widths = [font.getsize(c)[0] for c in test_chars]
     return all(w == widths[0] for w in widths)
+
+def get_monospace_font():
+    # get dejavu sans mono path
+    for font in fm.fontManager.ttflist:
+        if "dejavusansmono" in font.name.replace(" ", "").lower():
+            return font.fname
+        
+def get_font_aspect(font_path):
+    font = ImageFont.truetype(font_path, 16)
+    width, height = font.getsize("0")
+    return height / width
