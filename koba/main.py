@@ -65,25 +65,30 @@ def main(file, char_aspect, logging_level, save_blocks):
     ppc_w = math.ceil(width / chars_width)
     ppc_h = math.ceil(height / chars_height)
     
-    # TODO: remove thick padding
-    # add padding to 
-    pad_h = (chars_height * ppc_h) - height
-    pad_w = (chars_width * ppc_w) - width
-    if pad_h > 0 or pad_w > 0:
-        img_arr = np.pad(img_arr, ((0, pad_h), (0, pad_w)), mode='constant', constant_values=255)
-        height, width = img_arr.shape
-    
+    # distribute extra pixels
+    block_widths = [width // chars_width] * chars_width
+    for i in range(width % chars_width):
+        block_widths[i] += 1
+
+    block_heights = [height // chars_height] * chars_height
+    for i in range(height % chars_height):
+        block_heights[i] += 1
+
     logging.info(f"Image will be {chars_width}x{chars_height} chars.")
-    logging.info(f"Every char has to represent {ppc_w}x{ppc_h} pixels.")
-    logging.info(f"Max chars: {chars_width*chars_height}")
+    logging.info(f"Block widths: {block_widths[:5]}... (total {len(block_widths)})")
+    logging.info(f"Block heights: {block_heights[:5]}... (total {len(block_heights)})")
     
-    # splitting into blocks
+    # splitting into blocks with variable sizes
     blocks = []
-    for y in range(0, height, ppc_h):
-        for x in range(0, width, ppc_w):
-            block = img_arr[y:y+ppc_h, x:x+ppc_w]
+    y = 0
+    for bh in block_heights:
+        x = 0
+        for bw in block_widths:
+            block = img_arr[y:y+bh, x:x+bw]
             blocks.append(block)
-            
+            x += bw
+        y += bh
+
     logging.info(f"{len(blocks)} blocks created.")
     
     if save_blocks:
@@ -94,7 +99,7 @@ def main(file, char_aspect, logging_level, save_blocks):
             img_block = Image.fromarray(block)
             img_block.save(os.path.join(blocks_dir, f"block_{idx:04d}.png"))
     
-    characters = charsets.get_range(9600, 9632)
+    characters = charsets.get_range(32, 128)
     all_chars = ""
 
     # prepare arguments

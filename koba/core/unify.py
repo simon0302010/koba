@@ -7,7 +7,7 @@ import os
 from . import font
 
 
-SAVE_CHARS = True
+SAVE_CHARS = False
 FONT_SIZE = 48
 
 font_path = font.get_monospace_font()
