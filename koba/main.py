@@ -21,8 +21,8 @@ logging.basicConfig(
 )
 
 def process_block(args):
-    block, characters, engine = args
-    return unify.get_character(block, characters, engine)
+    block, characters, engine, save_chars = args
+    return unify.get_character(block, characters, save_chars, engine)
 
 @click.command("koba")
 @click.version_option(__version__)
@@ -45,10 +45,23 @@ def process_block(args):
     help="Set logging level. Options: CRITICAL, ERROR, WARNING, INFO, DEBUG."
 )
 @click.option("--save-blocks", is_flag=True, help="Saves images of blocks to blocks/")
-@click.option("--engine", "-e", default="brightness", help="Which engine to use for similarity checking (brightness, ssim, diff)")
-def main(file, char_aspect, logging_level, save_blocks, engine):
+@click.option("--save-chars", is_flag=True, help="Saves images of chars in the specified range to chars/")
+@click.option("--engine", "-e", default="brightness", help="Which engine to use for similarity checking (brightness, ssim, diff)", show_default=True)
+@click.option("--font", help="Overwrites default font path.", default=None)
+@click.option("--char-range", help="Sets the range of unicode symbols to use (start-end)", default="32-128", show_default=True)
+def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range):
     # update logging level
     logging.getLogger().setLevel(getattr(logging, logging_level.upper(), logging.ERROR))
+    
+    split_range = char_range.split("-")
+    start_char = split_range[0]
+    end_char = split_range[1]
+    if start_char.isnumeric() and end_char.isnumeric():
+        start_char = int(start_char)
+        end_char = int(end_char)
+    else:
+        logging.critical("Wrong format for char-range.")
+        sys.exit(1)
     
     # loading file and reading basic info
     try:
@@ -98,13 +111,16 @@ def main(file, char_aspect, logging_level, save_blocks, engine):
         os.makedirs(blocks_dir, exist_ok=True)
         for idx, block in enumerate(blocks):
             img_block = Image.fromarray(block)
-            img_block.save(os.path.join(blocks_dir, f"block_{idx:04d}.png"))
+            img_block.save(os.path.join(blocks_dir, f"{idx:04d}.png"))
     
-    characters = charsets.get_range(32, 128)
+    characters = charsets.get_range(start_char, end_char)
     all_chars = ""
 
     # prepare arguments
-    block_args = [(block, characters, engine.lower()) for block in blocks]
+    block_args = [(block, characters, engine.lower(), save_chars) for block in blocks]
+
+    if font:
+        unify.font_path = font
 
     results = [""] * len(blocks)
     with concurrent.futures.ProcessPoolExecutor() as executor:

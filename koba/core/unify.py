@@ -2,13 +2,13 @@ from PIL import ImageFont, ImageDraw, Image
 from skimage.metrics import structural_similarity as ssim
 import numpy as np
 import logging
+import sys
 import os
 
 from . import font
 
 
-SAVE_CHARS = False
-FONT_SIZE = 48
+FONT_SIZE = 20
 
 font_path = font.get_monospace_font()
 font_cache = {}
@@ -53,9 +53,9 @@ def get_char(char, width, height, save=False):
         char_image = char_image.resize((width, height), Image.Resampling.LANCZOS)
         
         if save:
-            os.makedirs("blocks", exist_ok=True)
+            os.makedirs("chars", exist_ok=True)
             char_code = ord(char)
-            char_image.save(f"blocks/char_{char_code}.png")
+            char_image.save(f"chars/{char_code}.png")
         
         char_arr = np.array(char_image)
             
@@ -63,10 +63,10 @@ def get_char(char, width, height, save=False):
         return char_arr
 
 # TODO: better comparison algorithm
-def compare_character(char, block_arr, engine="brightness"):
+def compare_character(char, block_arr, save_chars, engine):
     height, width = block_arr.shape
     
-    char_arr = get_char(char, width, height, save=SAVE_CHARS)
+    char_arr = get_char(char, width, height, save=save_chars)
     if char_arr is None:
         return 0.0
     
@@ -86,7 +86,7 @@ def compare_character(char, block_arr, engine="brightness"):
             logging.error(e)
         finally:
             similarity = 1.0 - (score / 255.0)
-    if engine == "ssim":
+    elif engine == "ssim":
         score = 0.0
         try:
             min_side = min(block_arr.shape)
@@ -106,7 +106,7 @@ def compare_character(char, block_arr, engine="brightness"):
                 similarity = max(0.0, float(score))
             except Exception:
                 similarity = 0.0
-    if engine == "diff":
+    elif engine == "diff":
         pixel_diff = np.sum(np.abs(block_arr - char_arr))
 
         max_diff = width * height * 255.0
@@ -116,15 +116,18 @@ def compare_character(char, block_arr, engine="brightness"):
         dissimilarity = pixel_diff / max_diff
 
         similarity = 1.0 - dissimilarity
+    else:
+        logging.critical("Invalid Engine specified.")
+        sys.exit(1)
         
     return similarity
     
 # TODO: implement early stopping
-def get_character(img_arr, characters, engine):
+def get_character(img_arr, characters, engine, save_chars):
     max_similarity = 0.0
     best_match = " "
     for character in characters:
-        similarity = compare_character(character, img_arr, engine)
+        similarity = compare_character(character, img_arr, engine, save_chars)
         if similarity > max_similarity:
             max_similarity = similarity
             best_match = character
