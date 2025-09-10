@@ -35,7 +35,7 @@ def process_block(args):
     )
 )
 @click.option(
-    "--char-aspect", default=1.4, show_default=True,
+    "--char-aspect", default=2, show_default=True,
     help="Set character height/width ratio."
 )
 @click.option(
@@ -65,6 +65,7 @@ def main(file, char_aspect, logging_level, save_blocks):
     ppc_w = math.ceil(width / chars_width)
     ppc_h = math.ceil(height / chars_height)
     
+    # TODO: remove thick padding
     # add padding to 
     pad_h = (chars_height * ppc_h) - height
     pad_w = (chars_width * ppc_w) - width
@@ -93,7 +94,7 @@ def main(file, char_aspect, logging_level, save_blocks):
             img_block = Image.fromarray(block)
             img_block.save(os.path.join(blocks_dir, f"block_{idx:04d}.png"))
     
-    characters = charsets.get_range(65, 90)
+    characters = charsets.get_range(9600, 9632)
     all_chars = ""
 
     # prepare arguments

@@ -2,9 +2,13 @@ from PIL import ImageFont, ImageDraw, Image
 from skimage.metrics import structural_similarity as ssim
 import numpy as np
 import logging
+import os
 
 from . import font
 
+
+SAVE_CHARS = True
+FONT_SIZE = 48
 
 font_path = font.get_monospace_font()
 font_cache = {}
@@ -16,43 +20,44 @@ def get_font(font_path, size):
         font_cache[key] = ImageFont.truetype(font_path, size)
     return font_cache[key]
 
-# TODO: fill whole canvas with char
-def get_char(char, width, height):
+# from UCYT5040/lectrick
+def crop_image(image):
+    image_array = np.array(image)
+    non_white_mask = image_array < 255
+    non_white_pixels = np.argwhere(non_white_mask)
+    if non_white_pixels.size == 0:
+        return image
+    top, left = non_white_pixels.min(axis=0)
+    bottom, right = non_white_pixels.max(axis=0) + 1  # +1 to include the last pixel
+    return image.crop((left, top, right, bottom))
+
+def get_char(char, width, height, save=False):
     char_arr = char_cache.get(char)
     if char_arr is not None:
         return char_arr
     else:
-        # find largest fitting font size
-        min_size = 1
-        max_size = min(width, height) * 4
-        best_size = min_size
-        while min_size <= max_size:
-            mid = (min_size + max_size) // 2
-            font = get_font(font_path, mid)
-            bbox = font.getbbox(char)
-            w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
-            if w <= width and h <= height:
-                best_size = mid
-                min_size = mid + 1
-            else:
-                max_size = mid - 1
-
-        # render at best size
-        font = get_font(font_path, best_size)
-        img = Image.new("L", (width, height), color=255)
-        draw = ImageDraw.Draw(img)
+        font = get_font(font_path, FONT_SIZE)
         bbox = font.getbbox(char)
-        w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        # center
-        x = (width - w) // 2 - bbox[0]
-        y = (height - h) // 2 - bbox[1]
-        draw.text((x, y), char, font=font, fill=0)
         
-        char_arr = np.array(img)
+        if not (bbox and bbox[2] > bbox[0] and bbox[3] > bbox[1]):
+            return None
         
-        if char_arr.shape != (height, width):
-            img = img.resize((width, height), Image.Resampling.LANCZOS)
-            char_arr = np.array(img)
+        char_width, char_height = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        
+        char_image = Image.new('L', (char_width, char_height), 255)
+        draw = ImageDraw.Draw(char_image)
+        draw.text((-bbox[0], -bbox[1]), char, font=font, fill=0)
+                
+        char_image = crop_image(char_image)
+        
+        char_image = char_image.resize((width, height), Image.Resampling.LANCZOS)
+        
+        if save:
+            os.makedirs("blocks", exist_ok=True)
+            char_code = ord(char)
+            char_image.save(f"blocks/char_{char_code}.png")
+        
+        char_arr = np.array(char_image)
             
         char_cache[char] = char_arr
         return char_arr
@@ -61,7 +66,9 @@ def get_char(char, width, height):
 def compare_character(char, block_arr, use_brightness=False):
     height, width = block_arr.shape
     
-    char_arr = get_char(char, width, height)
+    char_arr = get_char(char, width, height, save=SAVE_CHARS)
+    if char_arr is None:
+        return 0.0
     
     # compare arrays
     if use_brightness:
@@ -102,7 +109,7 @@ def get_character(img_arr, characters):
     max_similarity = 0.0
     best_match = " "
     for character in characters:
-        similarity = compare_character(character, img_arr)
+        similarity = compare_character(character, img_arr, use_brightness=True)
         if similarity > max_similarity:
             max_similarity = similarity
             best_match = character
