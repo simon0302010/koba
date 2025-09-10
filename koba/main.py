@@ -21,8 +21,8 @@ logging.basicConfig(
 )
 
 def process_block(args):
-    block, characters = args
-    return unify.get_character(block, characters)
+    block, characters, engine = args
+    return unify.get_character(block, characters, engine)
 
 @click.command("koba")
 @click.version_option(__version__)
@@ -44,8 +44,9 @@ def process_block(args):
     show_default=True,
     help="Set logging level. Options: CRITICAL, ERROR, WARNING, INFO, DEBUG."
 )
-@click.option("--save-blocks", is_flag=True)
-def main(file, char_aspect, logging_level, save_blocks):
+@click.option("--save-blocks", is_flag=True, help="Saves images of blocks to blocks/")
+@click.option("--engine", "-e", default="brightness", help="Which engine to use for similarity checking (brightness, ssim, diff)")
+def main(file, char_aspect, logging_level, save_blocks, engine):
     # update logging level
     logging.getLogger().setLevel(getattr(logging, logging_level.upper(), logging.ERROR))
     
@@ -103,7 +104,7 @@ def main(file, char_aspect, logging_level, save_blocks):
     all_chars = ""
 
     # prepare arguments
-    block_args = [(block, characters) for block in blocks]
+    block_args = [(block, characters, engine.lower()) for block in blocks]
 
     results = [""] * len(blocks)
     with concurrent.futures.ProcessPoolExecutor() as executor:

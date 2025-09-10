@@ -63,15 +63,20 @@ def get_char(char, width, height, save=False):
         return char_arr
 
 # TODO: better comparison algorithm
-def compare_character(char, block_arr, use_brightness=False):
+def compare_character(char, block_arr, engine="brightness"):
     height, width = block_arr.shape
     
     char_arr = get_char(char, width, height, save=SAVE_CHARS)
     if char_arr is None:
         return 0.0
     
+    if char_arr.shape != block_arr.shape:
+        char_img = Image.fromarray(char_arr)
+        char_img = char_img.resize((width, height), Image.Resampling.LANCZOS)
+        char_arr = np.array(char_img)
+    
     # compare arrays
-    if use_brightness:
+    if engine == "brightness":
         score = 255.0
         try:
             avg_char = np.mean(char_arr)
@@ -81,7 +86,7 @@ def compare_character(char, block_arr, use_brightness=False):
             logging.error(e)
         finally:
             similarity = 1.0 - (score / 255.0)
-    else:
+    if engine == "ssim":
         score = 0.0
         try:
             min_side = min(block_arr.shape)
@@ -101,15 +106,25 @@ def compare_character(char, block_arr, use_brightness=False):
                 similarity = max(0.0, float(score))
             except Exception:
                 similarity = 0.0
+    if engine == "diff":
+        pixel_diff = np.sum(np.abs(block_arr - char_arr))
+
+        max_diff = width * height * 255.0
+        if max_diff == 0:
+            return 1.0
+
+        dissimilarity = pixel_diff / max_diff
+
+        similarity = 1.0 - dissimilarity
         
     return similarity
     
 # TODO: implement early stopping
-def get_character(img_arr, characters):
+def get_character(img_arr, characters, engine):
     max_similarity = 0.0
     best_match = " "
     for character in characters:
-        similarity = compare_character(character, img_arr, use_brightness=True)
+        similarity = compare_character(character, img_arr, engine)
         if similarity > max_similarity:
             max_similarity = similarity
             best_match = character
