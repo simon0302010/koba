@@ -1,6 +1,7 @@
 import os
 import sys
 import math
+import time
 import logging
 import concurrent.futures
 
@@ -52,6 +53,8 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     # update logging level
     logging.getLogger().setLevel(getattr(logging, logging_level.upper(), logging.ERROR))
     
+    start_time = time.time()
+
     split_range = char_range.split("-")
     start_char = split_range[0]
     end_char = split_range[1]
@@ -70,7 +73,7 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
         sys.exit(1)
     img_arr = np.array(img)
     height, width = img_arr.shape[:2]
-    logging.info(f"Image is {width}x{height} pixels.")
+    logging.debug(f"Image is {width}x{height} pixels.")
     
     # calculating important metrics
     chars_width = os.get_terminal_size().columns
@@ -87,9 +90,9 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     for i in range(height % chars_height):
         block_heights[i] += 1
 
-    logging.info(f"Image will be {chars_width}x{chars_height} chars.")
-    logging.info(f"Block widths: {block_widths[:5]}... (total {len(block_widths)})")
-    logging.info(f"Block heights: {block_heights[:5]}... (total {len(block_heights)})")
+    logging.debug(f"Image will be {chars_width}x{chars_height} chars.")
+    logging.debug(f"Block widths: {block_widths[:5]}... (total {len(block_widths)})")
+    logging.debug(f"Block heights: {block_heights[:5]}... (total {len(block_heights)})")
     
     # splitting into blocks with variable sizes
     blocks = []
@@ -102,7 +105,7 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
             x += bw
         y += bh
 
-    logging.info(f"{len(blocks)} blocks created.")
+    logging.debug(f"{len(blocks)} blocks created.")
     
     if save_blocks:
         logging.info("Saving image blocks...")
@@ -131,6 +134,8 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
             idx = future_to_idx[future]
             results[idx] = future.result()
             print(f"Processed {i}/{len(future_to_idx)} blocks", end="\r", flush=True)
+
+    logging.info(f"Took {round(time.time() - start_time, 2)}s")
 
     all_chars = "".join(results)
     print()
