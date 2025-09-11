@@ -1,7 +1,6 @@
 import os
 import sys
 import math
-import time
 import logging
 import concurrent.futures
 
@@ -76,8 +75,8 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     # calculating important metrics
     chars_width = os.get_terminal_size().columns
     chars_height = math.ceil((height * chars_width / width) / char_aspect)
-    ppc_w = math.ceil(width / chars_width)
-    ppc_h = math.ceil(height / chars_height)
+    # ppc_w = math.ceil(width / chars_width)
+    # ppc_h = math.ceil(height / chars_height)
     
     # distribute extra pixels
     block_widths = [width // chars_width] * chars_width
