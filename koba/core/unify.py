@@ -32,7 +32,7 @@ def crop_image(image):
     return image.crop((left, top, right, bottom))
 
 def get_char(char, width, height, save=False):
-    char_arr = char_cache.get(char)
+    char_arr = char_cache.get((char, width, height))
     if char_arr is not None:
         return char_arr
     else:
@@ -59,7 +59,7 @@ def get_char(char, width, height, save=False):
         
         char_arr = np.array(char_image)
             
-        char_cache[char] = char_arr
+        char_cache[(char, width, height)] = char_arr
         return char_arr
 
 # TODO: better comparison algorithm
@@ -120,6 +120,22 @@ def compare_character(char, block_arr, save_chars, engine):
         mse = np.mean((block_arr.astype(np.float64) - char_arr.astype(np.float64)) ** 2)
         max_mse = 255.0 ** 2 # maximum possible mse
         similarity = 1.0 - (mse / max_mse) if max_mse > 0 else 1.0
+    elif engine == "ncc":
+        a = block_arr.astype(np.float64)
+        b = char_arr.astype(np.float64)
+        a = (a - a.mean()) / (a.std() + 1e-8)
+        b = (b - b.mean()) / (b.std() + 1e-8)
+        ncc = np.mean(a * b)
+        similarity = (ncc + 1) / 2
+    elif engine == "hist":
+        hist_a, _ = np.histogram(block_arr, bins=256, range=(0,255), density=True)
+        hist_b, _ = np.histogram(char_arr, bins=256, range=(0,255), density=True)
+        similarity = np.minimum(hist_a, hist_b).sum()
+    elif engine == "cosine":
+        a = block_arr.flatten().astype(np.float64)
+        b = char_arr.flatten().astype(np.float64)
+        cos_sim = np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-8)
+        similarity = (cos_sim + 1) / 2
     else:
         logging.critical("Invalid Engine specified.")
         sys.exit(1)
@@ -128,7 +144,7 @@ def compare_character(char, block_arr, save_chars, engine):
     
 # TODO: implement early stopping
 def get_character(img_arr, characters, engine, save_chars):
-    max_similarity = 0.0
+    max_similarity = float("-inf")
     best_match = " "
     for character in characters:
         similarity = compare_character(character, img_arr, engine, save_chars)

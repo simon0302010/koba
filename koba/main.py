@@ -7,6 +7,7 @@ import concurrent.futures
 
 import click
 import numpy as np
+from tqdm import tqdm
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from . import __version__
@@ -54,7 +55,7 @@ def process_block(args):
 )
 @click.option(
     "--engine", "-e", default="brightness", show_default=True,
-    help="Similarity metric to use: brightness, ssim, diff, or mse."
+    help="Similarity metric to use: brightness, ssim, diff, mse, ncc, hist, or cosine."
 )
 @click.option(
     "--font", default=None,
@@ -157,10 +158,9 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
             executor.submit(process_block, arg): idx
             for idx, arg in enumerate(block_args)
         }
-        for i, future in enumerate(concurrent.futures.as_completed(future_to_idx), 1):
+        for future in tqdm(concurrent.futures.as_completed(future_to_idx), total=len(future_to_idx), desc="Processing blocks"):
             idx = future_to_idx[future]
             results[idx] = future.result()
-            print(f"Processed {i}/{len(future_to_idx)} blocks", end="\r", flush=True)
 
     logging.info(f"Took {round(time.time() - start_time, 2)}s")
 

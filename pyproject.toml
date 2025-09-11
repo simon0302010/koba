@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "koba"
-version = "0.1.3"
+version = "0.1.4"
 description = "Terminal Image Renderer"
 readme = "README.md"
 requires-python = ">=3.9,<4.0"
@@ -17,7 +17,8 @@ dependencies = [
     "Pillow>=9.5.0",
     "click>=8.0.0",
     "matplotlib>=3.9.0",
-    "scikit-image>=0.24.0"
+    "scikit-image>=0.24.0",
+    "tqdm>=4.67.1"
 ]
 
 classifiers = [
