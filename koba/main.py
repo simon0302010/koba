@@ -46,7 +46,7 @@ def process_block(args):
 )
 @click.option("--save-blocks", is_flag=True, help="Saves images of blocks to blocks/")
 @click.option("--save-chars", is_flag=True, help="Saves images of chars in the specified range to chars/")
-@click.option("--engine", "-e", default="brightness", help="Which engine to use for similarity checking (brightness, ssim, diff)", show_default=True)
+@click.option("--engine", "-e", default="brightness", help="Which engine to use for similarity checking (brightness, ssim, diff, mse)", show_default=True)
 @click.option("--font", help="Overwrites default font path.", default=None)
 @click.option("--char-range", help="Sets the range of unicode symbols to use (start-end)", default="32-128", show_default=True)
 def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range):

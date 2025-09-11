@@ -116,6 +116,10 @@ def compare_character(char, block_arr, save_chars, engine):
         dissimilarity = pixel_diff / max_diff
 
         similarity = 1.0 - dissimilarity
+    elif engine == "mse":
+        mse = np.mean((block_arr.astype(np.float64) - char_arr.astype(np.float64)) ** 2)
+        max_mse = 255.0 ** 2 # maximum possible mse
+        similarity = 1.0 - (mse / max_mse) if max_mse > 0 else 1.0
     else:
         logging.critical("Invalid Engine specified.")
         sys.exit(1)
