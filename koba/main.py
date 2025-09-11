@@ -93,7 +93,11 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     logging.debug(f"Image will be {chars_width}x{chars_height} chars.")
     logging.debug(f"Block widths: {block_widths[:5]}... (total {len(block_widths)})")
     logging.debug(f"Block heights: {block_heights[:5]}... (total {len(block_heights)})")
-    
+
+    if min(block_heights + block_widths) <= 7 and str(engine).lower() == "ssim":
+        logging.critical("Image blocks are too small for SSIM. Please use another engine.")
+        sys.exit(1)
+
     # splitting into blocks with variable sizes
     blocks = []
     y = 0
