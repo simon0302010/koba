@@ -7,7 +7,7 @@ import concurrent.futures
 
 import click
 import numpy as np
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 from . import __version__
 from .core import charsets, unify
@@ -36,20 +36,40 @@ def process_block(args):
 )
 @click.option(
     "--char-aspect", default=2, show_default=True,
-    help="Set character height/width ratio."
+    help="Character height-to-width ratio (for aspect-correct output)."
 )
 @click.option(
     "--logging-level",
     default="ERROR",
     show_default=True,
-    help="Set logging level. Options: CRITICAL, ERROR, WARNING, INFO, DEBUG."
+    help="Set the logging verbosity. Options: CRITICAL, ERROR, WARNING, INFO, DEBUG."
 )
-@click.option("--save-blocks", is_flag=True, help="Saves images of blocks to blocks/")
-@click.option("--save-chars", is_flag=True, help="Saves images of chars in the specified range to chars/")
-@click.option("--engine", "-e", default="brightness", help="Which engine to use for similarity checking (brightness, ssim, diff, mse)", show_default=True)
-@click.option("--font", help="Overwrites default font path.", default=None)
-@click.option("--char-range", help="Sets the range of unicode symbols to use (start-end)", default="32-128", show_default=True)
-def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range):
+@click.option(
+    "--save-blocks", is_flag=True,
+    help="Save each image block as a PNG file in the 'blocks/' directory."
+)
+@click.option(
+    "--save-chars", is_flag=True,
+    help="Save rendered character images in the 'chars/' directory."
+)
+@click.option(
+    "--engine", "-e", default="brightness", show_default=True,
+    help="Similarity metric to use: brightness, ssim, diff, or mse."
+)
+@click.option(
+    "--font", default=None,
+    help="Path to a custom TTF font file (overrides the default font)."
+)
+@click.option(
+    "--char-range", default="32-128", show_default=True,
+    help="Unicode range of characters to use, as start-end (e.g., 32-128)."
+)
+@click.option(
+    "--stretch-contrast",
+    is_flag=True,
+    help="Stretch image contrast to use the full brightness range."
+)
+def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range, stretch_contrast):
     # update logging level
     logging.getLogger().setLevel(getattr(logging, logging_level.upper(), logging.ERROR))
     
@@ -67,7 +87,10 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     
     # loading file and reading basic info
     try:
+        # convert to grayscale and apply constrast stretching
         img = Image.open(file).convert("L")
+        if stretch_contrast:
+            img = ImageOps.autocontrast(img)
     except UnidentifiedImageError:
         logging.critical(f"Unsupported or unreadable image format for file: {file}.")
         sys.exit(1)
