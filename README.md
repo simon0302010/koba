@@ -1,4 +1,5 @@
 ![Hackatime](https://hackatime-badge.hackclub.com/U08HC7N4JJW/koba)
+![Hackatime](https://hackatime-badge.hackclub.com/U08HC7N4JJW/Kommandozeilenbildanzeige)
 ![PyPI - Version](https://img.shields.io/pypi/v/koba)
 
 # koba
@@ -102,14 +103,6 @@ koba image.png --logging-level DEBUG --save-blocks --save-chars
 ```bash
 koba logo.png --font ./fonts/custom.ttf --char-range 65-90 --engine mse
 ```
-
-## Technical Details
-
-- Automatically adjusts output to terminal width
-- Maintains aspect ratio with configurable character aspect
-- Uses multiprocessing for parallel block processing
-- Supports all PIL-compatible image formats
-- Minimum block size: 8×8 pixels for SSIM, 4×4 for other engines
 
 ## License
 
