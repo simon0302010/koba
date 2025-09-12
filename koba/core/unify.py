@@ -31,6 +31,7 @@ def crop_image(image):
     bottom, right = non_white_pixels.max(axis=0) + 1  # +1 to include the last pixel
     return image.crop((left, top, right, bottom))
 
+# TODO: detect if font supports character
 def get_char(char, width, height, save=False):
     char_arr = char_cache.get((char, width, height))
     if char_arr is not None:
@@ -137,8 +138,7 @@ def compare_character(char, block_arr, save_chars, engine):
         cos_sim = np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-8)
         similarity = (cos_sim + 1) / 2
     else:
-        logging.critical("Invalid Engine specified.")
-        sys.exit(1)
+        raise ValueError(f"Invalid engine specified: {engine}")
         
     return similarity
     

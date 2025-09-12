@@ -79,6 +79,10 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     # update logging level
     logging.getLogger().setLevel(getattr(logging, logging_level.upper(), logging.ERROR))
     
+    if font and not font.endswith(".ttf"):
+        logging.critical("Please provide a font in TTF format.")
+        sys.exit(1)
+
     start_time = time.time()
 
     split_range = char_range.split("-")
@@ -111,14 +115,18 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     # calculate required sizes
     min_block_width = 10 / char_aspect
     min_block_height = 10
-    
-    # adjust chars_width
-    required_chars_width = int(width // min_block_width)
-    if required_chars_width < chars_width:
-        chars_width = max(required_chars_width, 1)
 
-    chars_width = min(required_chars_width, int(terminal_width * scale))
+    scale = min(scale, 1.0)
     
+    max_chars_width_by_block_width = int(width // min_block_width)
+    max_chars_width_by_block_height = int(height // min_block_height * char_aspect)
+
+    max_chars_width = min(max_chars_width_by_block_width, max_chars_width_by_block_height)
+
+    chars_width = min(int(terminal_width * scale), terminal_width, max_chars_width)
+
+    chars_width = max(chars_width, 1)
+
     chars_height = math.ceil((height * chars_width / width) / char_aspect)
     
     # recalculate block sizes
@@ -175,9 +183,13 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
             executor.submit(process_block, arg): idx
             for idx, arg in enumerate(block_args)
         }
-        for future in tqdm(concurrent.futures.as_completed(future_to_idx), total=len(future_to_idx), desc="Processing blocks"):
-            idx = future_to_idx[future]
-            results[idx] = future.result()
+        try:
+            for future in tqdm(concurrent.futures.as_completed(future_to_idx), total=len(future_to_idx), desc="Processing blocks"):
+                idx = future_to_idx[future]
+                results[idx] = future.result()
+        except ValueError as e:
+            logging.critical(str(e))
+            sys.exit(1)
 
     logging.info(f"Took {round(time.time() - start_time, 2)}s")
 
