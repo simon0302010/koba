@@ -100,12 +100,21 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     logging.debug(f"Image is {width}x{height} pixels.")
     
     # calculating important metrics
-    chars_width = os.get_terminal_size().columns
-    chars_height = math.ceil((height * chars_width / width) / char_aspect)
-    # ppc_w = math.ceil(width / chars_width)
-    # ppc_h = math.ceil(height / chars_height)
+    terminal_width = os.get_terminal_size().columns
+    chars_width = terminal_width
     
-    # distribute extra pixels
+    # calculate required sizes
+    min_block_width = 10 / char_aspect
+    min_block_height = 10
+    
+    # adjust chars_width
+    required_chars_width = int(width // min_block_width)
+    if required_chars_width < chars_width:
+        chars_width = max(required_chars_width, 1)
+    
+    chars_height = math.ceil((height * chars_width / width) / char_aspect)
+    
+    # recalculate block sizes
     block_widths = [width // chars_width] * chars_width
     for i in range(width % chars_width):
         block_widths[i] += 1
@@ -114,6 +123,7 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     for i in range(height % chars_height):
         block_heights[i] += 1
 
+    logging.debug(f"Terminal is {terminal_width} chars wide.")
     logging.debug(f"Image will be {chars_width}x{chars_height} chars.")
     logging.debug(f"Block widths: {block_widths[:5]}... (total {len(block_widths)})")
     logging.debug(f"Block heights: {block_heights[:5]}... (total {len(block_heights)})")
@@ -165,5 +175,6 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     logging.info(f"Took {round(time.time() - start_time, 2)}s")
 
     all_chars = "".join(results)
+    all_chars = '\n'.join(all_chars[i:i+chars_width] for i in range(0, len(all_chars), chars_width))
     print()
     print(all_chars)

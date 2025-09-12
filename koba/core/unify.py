@@ -23,7 +23,7 @@ def get_font(font_path, size):
 # from UCYT5040/lectrick
 def crop_image(image):
     image_array = np.array(image)
-    non_white_mask = image_array < 255
+    non_white_mask = image_array < 0
     non_white_pixels = np.argwhere(non_white_mask)
     if non_white_pixels.size == 0:
         return image
@@ -44,9 +44,9 @@ def get_char(char, width, height, save=False):
         
         char_width, char_height = bbox[2] - bbox[0], bbox[3] - bbox[1]
         
-        char_image = Image.new('L', (char_width, char_height), 255)
+        char_image = Image.new('L', (char_width, char_height), 0)
         draw = ImageDraw.Draw(char_image)
-        draw.text((-bbox[0], -bbox[1]), char, font=font, fill=0)
+        draw.text((-bbox[0], -bbox[1]), char, font=font, fill=255)
                 
         char_image = crop_image(char_image)
         
@@ -151,5 +151,5 @@ def get_character(img_arr, characters, engine, save_chars):
         if similarity > max_similarity:
             max_similarity = similarity
             best_match = character
-            
+    
     return best_match
