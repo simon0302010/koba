@@ -177,6 +177,9 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     if font:
         unify.font_path = font
 
+    for char in tqdm(characters, total=len(characters), desc="Loading fonts"):
+        unify.get_font(char)
+
     results = [""] * len(blocks)
     with concurrent.futures.ProcessPoolExecutor() as executor:
         future_to_idx = {
