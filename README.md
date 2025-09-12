@@ -3,3 +3,13 @@
 
 # koba
 Terminal Image Renderer, made in Python.
+
+Examples:
+
+```bash
+koba image.png --engine diff
+```
+
+```bash
+koba image.jpg --stretch-contrast --engine diff --char-range 9600-9632
+```

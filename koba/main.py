@@ -70,7 +70,12 @@ def process_block(args):
     is_flag=True,
     help="Stretch image contrast to use the full brightness range."
 )
-def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range, stretch_contrast):
+@click.option(
+    "--scale",
+    default=1.0,
+    help="Sets the scale at which to render the image. Will be overwritten if image needs to be scaled down to allow proper processing."
+)
+def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range, stretch_contrast, scale):
     # update logging level
     logging.getLogger().setLevel(getattr(logging, logging_level.upper(), logging.ERROR))
     
@@ -111,6 +116,8 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     required_chars_width = int(width // min_block_width)
     if required_chars_width < chars_width:
         chars_width = max(required_chars_width, 1)
+
+    chars_width = min(required_chars_width, int(terminal_width * scale))
     
     chars_height = math.ceil((height * chars_width / width) / char_aspect)
     
