@@ -14,11 +14,18 @@ font_path = font.get_monospace_font()
 font_cache = {}
 char_cache = {}
 
-def get_font(font_path, size):
-    key = (font_path, size)
-    if key not in font_cache:
-        font_cache[key] = ImageFont.truetype(font_path, size)
-    return font_cache[key]
+def get_font(char):
+    if char not in font_cache.keys():
+        if font_path and font.check_support(char, font_path):
+            font_cache[char] = ImageFont.truetype(font_path, FONT_SIZE)
+        else:
+            new_font = font.get_supported_font(char)
+            if new_font:
+                logging.debug(f"Found font that supports {char}.")
+                font_cache[char] = ImageFont.truetype(new_font, FONT_SIZE)
+            else:
+                return None
+    return font_cache[char]
 
 # from UCYT5040/lectrick
 def crop_image(image):
@@ -37,7 +44,10 @@ def get_char(char, width, height, save=False):
     if char_arr is not None:
         return char_arr
     else:
-        font = get_font(font_path, FONT_SIZE)
+        font = get_font(char)
+        if not font:
+            logging.critical("Some chars are not supported by any of your installed fonts. Please specify a custom font with the --font option.")
+            raise FileNotFoundError
         bbox = font.getbbox(char)
         
         if not (bbox and bbox[2] > bbox[0] and bbox[3] > bbox[1]):

@@ -1,7 +1,7 @@
 # will probably not be used but still kept
 
 import matplotlib.font_manager as fm
-from PIL import ImageFont
+from fontTools.ttLib import TTFont
 
 
 PREFERRED = [
@@ -62,20 +62,26 @@ def get_best_candidate(font_paths):
     best = min(candidates, key=score, default=None)
     return best
 
-# very slow, will prob not use
-def is_monospace(path, test_chars="ilMW"):
-    font = ImageFont.truetype(path, 16)
-    widths = [font.getsize(c)[0] for c in test_chars]
-    return all(w == widths[0] for w in widths)
-
 def get_monospace_font():
     # get dejavu sans mono path
     for font in fm.fontManager.ttflist:
         if "dejavusansmono" in font.name.replace(" ", "").lower():
             return font.fname
+    return None
+        
+def get_supported_font(char):
+    for font_path in fm.fontManager.ttflist:
+        font = TTFont(font_path.fname)
+        for cmap in font['cmap'].tables:
+            if cmap.isUnicode():
+                if ord(char) in cmap.cmap:
+                    return font_path.fname
+    return False
 
-# results are weird
-def get_font_aspect(font_path):
-    font = ImageFont.truetype(font_path, 16)
-    width, height = font.getsize("0")
-    return height / width
+def check_support(char, font_path):
+    font = TTFont(font_path)
+    for cmap in font['cmap'].tables:
+        if cmap.isUnicode():
+            if ord(char) in cmap.cmap:
+                return True
+    return False
