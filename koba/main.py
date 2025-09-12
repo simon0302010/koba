@@ -54,7 +54,7 @@ def process_block(args):
     help="Save rendered character images in the 'chars/' directory."
 )
 @click.option(
-    "--engine", "-e", default="brightness", show_default=True,
+    "--engine", "-e", default="diff", show_default=True,
     help="Similarity metric to use: brightness, ssim, diff, mse, ncc, hist, or cosine."
 )
 @click.option(

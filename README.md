@@ -49,7 +49,7 @@ koba [OPTIONS] FILE
 | `--logging-level TEXT` | Set verbosity: CRITICAL, ERROR, WARNING, INFO, DEBUG | `ERROR` |
 | `--save-blocks` | Save image blocks as PNG files in 'blocks/' directory | |
 | `--save-chars` | Save rendered character images in 'chars/' directory | |
-| `-e, --engine TEXT` | Similarity metric (see engines below) | `brightness` |
+| `-e, --engine TEXT` | Similarity metric (see engines below) | `diff` |
 | `--font TEXT` | Path to custom TTF font file | |
 | `--char-range TEXT` | Unicode range as start-end (e.g., 32-128) | `32-128` |
 | `--stretch-contrast` | Stretch image contrast to potentially improve results  | |
@@ -59,8 +59,8 @@ koba [OPTIONS] FILE
 
 Choose the engine that best fits your artistic vision:
 
-- **`brightness`** - Fast, good for simple images and text (default)
-- **`diff`** - Pixel-wise difference, balanced quality/speed
+- **`diff`** - Pixel-wise difference, balanced quality/speed (default)
+- **`brightness`** - Fast, good for simple images
 - **`mse`** - Mean squared error, precise pixel matching
 - **`ssim`** - Structural similarity, good for complex images
 - **`ncc`** - Normalized cross-correlation, good for textured images
