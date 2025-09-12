@@ -38,7 +38,6 @@ def crop_image(image):
     bottom, right = non_white_pixels.max(axis=0) + 1  # +1 to include the last pixel
     return image.crop((left, top, right, bottom))
 
-# TODO: detect if font supports character
 def get_char(char, width, height, save=False):
     char_arr = char_cache.get((char, width, height))
     if char_arr is not None:
@@ -73,7 +72,6 @@ def get_char(char, width, height, save=False):
         char_cache[(char, width, height)] = char_arr
         return char_arr
 
-# TODO: better comparison algorithm
 def compare_character(char, block_arr, save_chars, engine):
     height, width = block_arr.shape
     
@@ -152,7 +150,6 @@ def compare_character(char, block_arr, save_chars, engine):
         
     return similarity
     
-# TODO: implement early stopping
 def get_character(img_arr, characters, engine, save_chars):
     max_similarity = float("-inf")
     best_match = " "
