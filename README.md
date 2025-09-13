@@ -1,5 +1,6 @@
 ![Hackatime](https://hackatime-badge.hackclub.com/U08HC7N4JJW/koba)
 ![Hackatime](https://hackatime-badge.hackclub.com/U08HC7N4JJW/Kommandozeilenbildanzeige)
+![Tests Passing](https://img.shields.io/github/actions/workflow/status/simon0302010/koba/.github%2Fworkflows%2Fpython-package.yml?label=tests)
 ![PyPI - Version](https://img.shields.io/pypi/v/koba)
 
 # koba
