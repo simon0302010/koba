@@ -62,8 +62,8 @@ def process_block(args):
     help="Path to a custom TTF font file (overrides the default font)."
 )
 @click.option(
-    "--char-range", default="32-128", show_default=True,
-    help="Unicode range of characters to use, as start-end (e.g., 32-128)."
+    "--char-range", default="32-126", show_default=True,
+    help="Unicode range of characters to use, as start-end (e.g., 32-126)."
 )
 @click.option(
     "--stretch-contrast",
