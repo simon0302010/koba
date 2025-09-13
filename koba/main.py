@@ -75,7 +75,12 @@ def process_block(args):
     default=1.0,
     help="Sets the scale at which to render the image. Will be overwritten if image needs to be scaled down to allow proper processing."
 )
-def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range, stretch_contrast, scale):
+@click.option(
+    "--invert",
+    is_flag=True,
+    help="Inverts the image before processing."
+)
+def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range, stretch_contrast, scale, invert):
     # update logging level
     logging.getLogger().setLevel(getattr(logging, logging_level.upper(), logging.ERROR))
     
@@ -99,6 +104,8 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     try:
         # convert to grayscale and apply constrast stretching
         img = Image.open(file).convert("L")
+        if invert:
+            img = ImageOps.invert(img)
         if stretch_contrast:
             img = ImageOps.autocontrast(img)
     except UnidentifiedImageError:
