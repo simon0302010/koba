@@ -6,6 +6,32 @@
 # koba
 A terminal image renderer that can construct images using any set of unicode symbols.
 
+```
+```````````````````````````````````````````````````````````````````````
+```````````````````````````````````````````````````````````````````````
+```````````````````````````````````````````````````````````````````````
+```_______L``_____`````__BBBa__`````____________``````````___``````````
+```==BBBP=```=mB==````aBBP~~=BB_````==BBBe===BBB_`````````BBBL`````````
+`````BBB.````_B-`````eBBF````eBB_`````BBB.```~BBB_````````BBB_`````````
+`````BBB.```_B-`````ABBB`````JBBB`````BBB.````eBBa```````ABBBB`````````
+`````BBB.``_BF``````BBB.``````BBBL````BBB.````aBBB```````BRBBBL````````
+`````BBB.`_BF``````JBBB,``````eBBa````BBB.````BBBe``````JB^BBB_````````
+`````BBB._BF```````ABBBL``````aBBB````BBB.```_BBB-``````A#`eBBB````````
+`````BBB_BB_```````aBBB```````aBBB````BBBa__BBB=^```````BL`3BBBL```````
+`````BBBBBBB_``````aBBB```````aBBBL```BBBe===BBa_``````JB```BBBa```````
+`````BBBPeBBB_`````aBBB```````aBBBL```BBB.```~aBB_`````aF```mBBB```````
+`````BBB.`BBBa`````aBBBL``````aBBB````BBB.````mBBBL````BL```3BBBL``````
+`````BBB.`~BBB_````3BBBL``````BBBB````BBB.````JBBBa```JBBBBBBBBBa``````
+`````BBB.``=BBB_````BBBL``````BBB#````BBB.````JBBBa```ar~~~~~mBBBL`````
+`````BBB.```eBBB_```mBB_`````JBBBL````BBB.````JBBBe```B``````JBBBL`````
+`````BBB.````BBBBL```BBBL````ABBP`````BBB.````aBBB,``Je```````BBBa`````
+```__BBB__```~BBB__:`~BBa_``_BB=````__BBB____aBBBP``_BL_`````_BBBB__```
+```BBBBBBBL```=BBBB.``~=BBaBBB=`````BBBBBBBBBBB=~```BBBB`````BBBBBBa```
+`````````````````````````~~~~``````````````````````````````````````````
+```````````````````````````````````````````````````````````````````````
+```````````````````````````````````````````````````````````````````````
+```
+
 ## Installation
 
 ```bash
