@@ -86,56 +86,52 @@ def compare_character(char, block_arr, save_chars, engine):
     
     # compare arrays
     if engine == "brightness":
-        score = 255.0
-        try:
-            avg_char = np.mean(char_arr)
-            avg_block = np.mean(block_arr)
-            score = abs(avg_char - avg_block)
-        except Exception as e:
-            logging.error(e)
-        finally:
-            similarity = 1.0 - (score / 255.0)
+        avg_char = np.mean(char_arr)
+        avg_block = np.mean(block_arr)
+        score = abs(avg_char - avg_block)
+        similarity = 1.0 - (score / 255.0)
     elif engine == "ssim":
-        score = 0.0
+        min_side = min(block_arr.shape)
+        win_size = min(7, min_side)
+        if win_size % 2 == 0:
+            win_size -= 1
+        if win_size < 3:
+            win_size = 3
+        
         try:
-            min_side = min(block_arr.shape)
-            win_size = min(7, min_side)
-            if win_size % 2 == 0:
-                win_size -= 1
-            if win_size < 3:
-                win_size = 3
             score = ssim(block_arr, char_arr, data_range=255, win_size=win_size)
-        except Exception as e:
-            logging.error(e)
-            score = 0.0
-        finally:
-            if isinstance(score, tuple):
-                score = score[0]
-            try:
-                similarity = max(0.0, float(score))
-            except Exception:
-                similarity = 0.0
+            similarity = max(0.0, float(score))
+        except ValueError:
+            # This can happen if the window size is larger than the image
+            similarity = 0.0
+            
     elif engine == "diff":
-        pixel_diff = np.sum(np.abs(block_arr - char_arr))
-
-        max_diff = width * height * 255.0
+        pixel_diff = np.sum(np.abs(block_arr.astype(np.float64) - char_arr.astype(np.float64)))
+        max_diff = float(width * height * 255)
         if max_diff == 0:
             return 1.0
-
         dissimilarity = pixel_diff / max_diff
-
         similarity = 1.0 - dissimilarity
     elif engine == "mse":
         mse = np.mean((block_arr.astype(np.float64) - char_arr.astype(np.float64)) ** 2)
-        max_mse = 255.0 ** 2 # maximum possible mse
+        max_mse = 255.0 ** 2
         similarity = 1.0 - (mse / max_mse) if max_mse > 0 else 1.0
     elif engine == "ncc":
         a = block_arr.astype(np.float64)
         b = char_arr.astype(np.float64)
-        a = (a - a.mean()) / (a.std() + 1e-8)
-        b = (b - b.mean()) / (b.std() + 1e-8)
-        ncc = np.mean(a * b)
-        similarity = (ncc + 1) / 2
+        
+        std_a = a.std()
+        std_b = b.std()
+
+        if std_a == 0 and std_b == 0:
+            similarity = 1.0 if a.mean() == b.mean() else 0.0
+        elif std_a == 0 or std_b == 0:
+            similarity = 0.0
+        else:
+            a = (a - a.mean()) / std_a
+            b = (b - b.mean()) / std_b
+            ncc = np.mean(a * b)
+            similarity = (ncc + 1) / 2
     elif engine == "hist":
         hist_a, _ = np.histogram(block_arr, bins=256, range=(0,255), density=True)
         hist_b, _ = np.histogram(char_arr, bins=256, range=(0,255), density=True)
@@ -143,8 +139,17 @@ def compare_character(char, block_arr, save_chars, engine):
     elif engine == "cosine":
         a = block_arr.flatten().astype(np.float64)
         b = char_arr.flatten().astype(np.float64)
-        cos_sim = np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-8)
-        similarity = (cos_sim + 1) / 2
+        
+        norm_a = np.linalg.norm(a)
+        norm_b = np.linalg.norm(b)
+
+        if norm_a == 0 and norm_b == 0: # Both are black
+            similarity = 1.0
+        elif norm_a == 0 or norm_b == 0: # One is black
+            similarity = 0.0
+        else:
+            cos_sim = np.dot(a, b) / (norm_a * norm_b)
+            similarity = (cos_sim + 1) / 2
     else:
         raise ValueError(f"Invalid engine specified: {engine}")
         
