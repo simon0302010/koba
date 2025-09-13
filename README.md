@@ -109,6 +109,7 @@ Choose the engine that best fits your artistic vision:
 - `9632-9727` - Geometric shapes
 - `10240-10495` - Braille patterns (high detail)
 - `0-1114111` - Full Unicode range (basically impossible)
+> ⚠️ Depending on your terminal and its font settings, some characters may not display correctly if they are not supported by your terminal's font.
 
 ### Example Character Sets
 ```bash
