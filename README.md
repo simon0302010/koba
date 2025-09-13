@@ -76,7 +76,7 @@ Choose the engine that best fits your artistic vision:
 - `9600-9631` - Block drawing characters
 - `9632-9727` - Geometric shapes
 - `10240-10495` - Braille patterns (high detail)
-- `0-1114111` - Full Unicode range (use with appropriate font)
+- `0-1114111` - Full Unicode range (basically impossible)
 
 ### Example Character Sets
 ```bash

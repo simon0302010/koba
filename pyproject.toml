@@ -27,6 +27,9 @@ classifiers = [
     "Operating System :: Microsoft :: Windows"
 ]
 
+[project.optional-dependencies]
+test = ["pytest", "pytest-mock"]
+
 [project.urls]
 Homepage = "https://github.com/simon0302010/Kommandozeilenbildanzeige"
 
