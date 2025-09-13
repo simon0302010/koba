@@ -42,6 +42,10 @@ koba image.jpg --font /path/to/font.ttf
 koba [OPTIONS] FILE
 ```
 
+```
+python3 -m koba [OPTIONS] FILE
+```
+
 ### Options
 
 | Option | Description | Default |
