@@ -27,6 +27,7 @@ koba image.png --char-range 9600-9632
 # Custom font
 koba image.jpg --font /path/to/font.ttf
 ```
+> You can also run `koba` as a module with `python3 -m koba [OPTIONS] FILE`.
 
 ## Features
 
