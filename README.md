@@ -38,7 +38,12 @@ A terminal image renderer that can construct images using any set of unicode sym
 pip install koba
 ```
 
-## Quick Start
+> **No Python?**  
+> You can also download a binary for Linux, Windows, or macOS from the [releases tab](https://github.com/simon0302010/koba/releases).  
+> **Note:** These binaries are slower and not recommended unless you cannot use Python.  
+> **They must be run from the command line.**
+
+## Quick Start & Examples
 
 ```bash
 # Basic usage
@@ -52,8 +57,15 @@ koba image.png --char-range 9600-9632
 
 # Custom font
 koba image.jpg --font /path/to/font.ttf
+
+# Debugging
+koba image.png --logging-level DEBUG --save-blocks --save-chars
+
+# Custom font with specific characters
+koba logo.png --font ./fonts/custom.ttf --char-range 65-90 --engine mse
 ```
-> You can also run `koba` as a module with `python3 -m koba [OPTIONS] FILE`.
+> You can also run `koba` as a module with `python3 -m koba [OPTIONS] FILE`.  
+> **Note:** If your custom font does not include a character, koba will automatically use a system font just for that missing character.
 
 ## Features
 
@@ -118,23 +130,6 @@ koba image.png --char-range 32-126
 
 # Geometric patterns
 koba image.png --char-range 9632-9727
-```
-
-## Examples
-
-### Basic Usage
-```bash
-koba photo.jpg
-```
-
-### Debugging
-```bash
-koba image.png --logging-level DEBUG --save-blocks --save-chars
-```
-
-### Custom Font with Specific Characters
-```bash
-koba logo.png --font ./fonts/custom.ttf --char-range 65-90 --engine mse
 ```
 
 ## License
