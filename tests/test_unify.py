@@ -36,3 +36,10 @@ def test_compare_perfect_mismatch(engine, mocker):
         assert similarity == pytest.approx(0.0, abs=1e-4)
     else:
         assert similarity == pytest.approx(0.0)
+
+def test_get_font():
+    font = unify.get_font("a")
+    if font:
+        assert True
+    else:
+        assert False
