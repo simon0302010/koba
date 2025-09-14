@@ -10,8 +10,8 @@ import numpy as np
 from tqdm import tqdm
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-from . import __version__
-from .core import charsets, unify
+from koba import __version__
+from koba.core import charsets, unify
 
 
 logging.basicConfig(

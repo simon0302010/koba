@@ -5,7 +5,7 @@ import logging
 import sys
 import os
 
-from . import font
+from koba.core import font
 
 
 FONT_SIZE = 20
