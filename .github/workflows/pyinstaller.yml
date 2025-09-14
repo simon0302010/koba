@@ -1,0 +1,127 @@
+name: Build binaries using PyInstaller.
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip
+      - run: pip install build
+      - run: pip install .
+      - run: pip install pyinstaller
+      - run: pyinstaller --onefile koba/__main__.py --name koba
+      - run: mv dist/koba.exe dist/koba-windows.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: dist/koba-windows.exe
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip
+      - run: pip install build
+      - run: pip install .
+      - run: pip install pyinstaller
+      - run: pyinstaller --onefile koba/__main__.py --name koba
+      - run: mv dist/koba dist/koba-linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-binary
+          path: dist/koba-linux
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip
+      - run: pip install build
+      - run: pip install .
+      - run: pip install pyinstaller
+      - run: pyinstaller --onefile koba/__main__.py --name koba
+      - run: mv dist/koba dist/koba-macos
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-binary
+          path: dist/koba-macos
+
+  release:
+    needs: [build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-exe
+          path: artifacts/
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-binary
+          path: artifacts/
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-binary
+          path: artifacts/
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Windows exe to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/koba-windows.exe
+          asset_name: koba-windows.exe
+          asset_content_type: application/octet-stream
+
+      - name: Upload Linux binary to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/koba-linux
+          asset_name: koba-linux
+          asset_content_type: application/octet-stream
+
+      - name: Upload macOS binary to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/koba-macos
+          asset_name: koba-macos
+          asset_content_type: application/octet-stream
