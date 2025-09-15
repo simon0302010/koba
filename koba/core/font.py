@@ -1,3 +1,5 @@
+# TODO: dont depend on matplotlib
+
 import matplotlib.font_manager as fm
 from fontTools.ttLib import TTFont
 

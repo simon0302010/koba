@@ -1,3 +1,5 @@
+# TODO: video support
+
 import os
 import sys
 import math
@@ -193,6 +195,7 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
         for char in tqdm(characters, total=len(characters), desc="Loading fonts"):
             unify.get_font(char)
 
+    # TODO: more efficient processing
     if not single_threaded:
         results = [""] * len(blocks)
         with concurrent.futures.ProcessPoolExecutor() as executor:
