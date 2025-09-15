@@ -80,7 +80,12 @@ def process_block(args):
     is_flag=True,
     help="Inverts the image before processing."
 )
-def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range, stretch_contrast, scale, invert):
+@click.option(
+    "--single-threaded",
+    is_flag=True,
+    help="Runs the whole program single-threaded."
+)
+def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range, stretch_contrast, scale, invert, single_threaded):
     # update logging level
     logging.getLogger().setLevel(getattr(logging, logging_level.upper(), logging.ERROR))
     
@@ -188,19 +193,26 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
         for char in tqdm(characters, total=len(characters), desc="Loading fonts"):
             unify.get_font(char)
 
-    results = [""] * len(blocks)
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        future_to_idx = {
-            executor.submit(process_block, arg): idx
-            for idx, arg in enumerate(block_args)
-        }
-        try:
-            for future in tqdm(concurrent.futures.as_completed(future_to_idx), total=len(future_to_idx), desc="Processing blocks"):
-                idx = future_to_idx[future]
-                results[idx] = future.result()
-        except ValueError as e:
-            logging.critical(str(e))
-            sys.exit(1)
+    if not single_threaded:
+        results = [""] * len(blocks)
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            future_to_idx = {
+                executor.submit(process_block, arg): idx
+                for idx, arg in enumerate(block_args)
+            }
+            try:
+                for future in tqdm(concurrent.futures.as_completed(future_to_idx), total=len(future_to_idx), desc="Processing blocks"):
+                    idx = future_to_idx[future]
+                    results[idx] = future.result()
+            except ValueError as e:
+                logging.critical(str(e))
+                sys.exit(1)
+    else:
+        results = []
+        for args in tqdm(block_args, desc="Processing blocks (single-threaded)"):
+            block, characters, engine, save_chars = args
+            result = unify.get_character(block, characters, save_chars, engine)
+            results.append(result)
 
     logging.info(f"Took {round(time.time() - start_time, 2)}s")
 
