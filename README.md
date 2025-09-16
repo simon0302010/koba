@@ -54,6 +54,9 @@ koba image.png
 # Use different similarity engine
 koba image.jpg --engine diff
 
+# Render in color
+koba image.jpg --color
+
 # Custom character set (box drawing characters)
 koba image.png --char-range 9600-9632
 
@@ -92,6 +95,7 @@ python3 -m koba [OPTIONS] FILE
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--version` | Show version and exit | |
+| `--color` | Render in color | |
 | `--char-aspect INTEGER` | Character height-to-width ratio for aspect-correct output | `2` |
 | `--logging-level TEXT` | Set verbosity: CRITICAL, ERROR, WARNING, INFO, DEBUG | `ERROR` |
 | `--save-blocks` | Save image blocks as PNG files in 'blocks/' directory | |
