@@ -100,6 +100,8 @@ def compare_character(char, block_arr, save_chars, engine):
         
         try:
             score = ssim(block_arr, char_arr, data_range=255, win_size=win_size)
+            if isinstance(score, tuple):
+                score = score[0]
             similarity = max(0.0, float(score))
         except ValueError:
             # This can happen if the window size is larger than the image
