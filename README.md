@@ -41,8 +41,8 @@ pip install koba
 ```
 
 > **No Python?**  
-> You can also download a binary for Linux, Windows, or macOS from the [releases tab](https://github.com/simon0302010/koba/releases).  
-> **Note:** These binaries are slower and not recommended unless you cannot use Python.  
+> You can also download a binary for Linux, Windows, or macOS from the [releases tab](https://github.com/simon0302010/koba/releases).
+> **Note:** These binaries are slower and not recommended unless you cannot use Python. They might also be detected as viruses by some antivirus software.
 > **They must be run from the command line.**
 
 ## Quick Start & Examples
