@@ -87,7 +87,12 @@ def process_block(args):
     is_flag=True,
     help="Runs the whole program single-threaded."
 )
-def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range, stretch_contrast, scale, invert, single_threaded):
+@click.option(
+    "--color",
+    is_flag=True,
+    help="Prints the image in color."
+)
+def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range, stretch_contrast, scale, invert, single_threaded, color):
     # update logging level
     logging.getLogger().setLevel(getattr(logging, logging_level.upper(), logging.ERROR))
     
@@ -110,11 +115,14 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     # loading file and reading basic info
     try:
         # convert to grayscale and apply constrast stretching
-        img = Image.open(file).convert("L")
-        if invert:
-            img = ImageOps.invert(img)
-        if stretch_contrast:
-            img = ImageOps.autocontrast(img)
+        if color:
+            img = Image.open(file)
+        else:
+            img = Image.open(file).convert("L")
+            if invert:
+                img = ImageOps.invert(img)
+            if stretch_contrast:
+                img = ImageOps.autocontrast(img)
     except UnidentifiedImageError:
         logging.critical(f"Unsupported or unreadable image format for file: {file}.")
         sys.exit(1)
@@ -162,12 +170,30 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
         sys.exit(1)
 
     # splitting into blocks with variable sizes
+    colors = []
     blocks = []
     y = 0
     for bh in block_heights:
         x = 0
         for bw in block_widths:
             block = img_arr[y:y+bh, x:x+bw]
+            if block.ndim == 3: # check if block is rgb
+                if color:
+                    block_color = block.mean(axis=(0, 1)).astype(int)
+                    colors.append(block_color)
+                    
+                    block = Image.fromarray(block).convert("L")
+                    if invert:
+                        block = ImageOps.invert(block)
+                    if stretch_contrast:
+                        block = ImageOps.autocontrast(block)
+                    block = np.array(block)
+                else:
+                    logging.warning("Block has color but --color wasn't used.")
+                    block = Image.fromarray(block).convert("L")
+                    block = np.array(block)
+                
+                
             blocks.append(block)
             x += bw
         y += bh
