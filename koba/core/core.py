@@ -18,7 +18,7 @@ def process_block(args):
     block, characters, engine, save_chars = args
     return unify.get_character(block, characters, save_chars, engine)
 
-def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, save_blocks, start_char, end_char, save_chars, font, single_threaded):
+def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, save_blocks, start_char, end_char, save_chars, font, single_threaded, show_progress=False):
     img_arr = np.array(img)
     height, width = img_arr.shape[:2]
     logging.debug(f"Image is {width}x{height} pixels.")
@@ -120,7 +120,6 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
         for char in tqdm(characters, total=len(characters), desc="Loading fonts"):
             unify.get_font(char)
 
-    # TODO: more efficient processing
     if not single_threaded:
         results = [""] * len(blocks)
         with concurrent.futures.ProcessPoolExecutor() as executor:
@@ -129,7 +128,12 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
                 for idx, arg in enumerate(block_args)
             }
             try:
-                for future in tqdm(concurrent.futures.as_completed(future_to_idx), total=len(future_to_idx), desc="Processing blocks"):
+                for future in tqdm(
+                    concurrent.futures.as_completed(future_to_idx),
+                    total=len(future_to_idx),
+                    desc="Processing blocks",
+                    disable=not show_progress
+                ):
                     idx = future_to_idx[future]
                     results[idx] = future.result()
             except ValueError as e:
@@ -137,7 +141,11 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
                 sys.exit(1)
     else:
         results = []
-        for args in tqdm(block_args, desc="Processing blocks (single-threaded)"):
+        for args in tqdm(
+            block_args,
+            desc="Processing blocks (single-threaded)",
+            disable=not show_progress
+        ):
             block, characters, engine, save_chars = args
             result = unify.get_character(block, characters, save_chars, engine)
             results.append(result)

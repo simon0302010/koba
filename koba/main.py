@@ -6,6 +6,7 @@ import logging
 
 import click
 from PIL import Image, ImageOps, ImageSequence, UnidentifiedImageError
+from tqdm import tqdm
 
 from koba import __version__
 from koba.core import core
@@ -114,7 +115,7 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     
     frame_delays = []
     all_frames = []
-    for i, frame in enumerate(ImageSequence.Iterator(img)):
+    for i, frame in tqdm(enumerate(ImageSequence.Iterator(img)), total=frame_count, desc="Processing frames", disable=not is_gif):
         if color:
             frame = frame.convert("RGB")
         else:
@@ -125,7 +126,7 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
                 frame = ImageOps.autocontrast(frame)
         all_frames.append(core.process(
             frame, char_aspect, scale, engine, color, invert, stretch_contrast,
-            save_blocks, start_char, end_char, save_chars, font, single_threaded
+            save_blocks, start_char, end_char, save_chars, font, single_threaded, show_progress=not is_gif
         ))
         
         delay = frame.info.get("duration", 100)
