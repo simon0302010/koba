@@ -112,6 +112,7 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     logging.info(f"Image has {frame_count} frame(s).")
     is_gif = frame_count > 1
     
+    frame_delays = []
     all_frames = []
     for i, frame in enumerate(ImageSequence.Iterator(img)):
         if color:
@@ -126,18 +127,25 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
             frame, char_aspect, scale, engine, color, invert, stretch_contrast,
             save_blocks, start_char, end_char, save_chars, font, single_threaded
         ))
+        
+        delay = frame.info.get("duration", 100)
+        if not delay or delay == 0:
+            delay = 100      
+        frame_delays.append(delay / 1000.0)
+
+    logging.debug(f"Frame delays: {frame_delays[:3]} ...")
 
     prev_lines = 0
     if is_gif:
         while True:
-            for frame in all_frames:
+            for frame, delay in zip(all_frames, frame_delays):
                 lines = frame.count('\n')
                 if prev_lines > 0:
-                    sys.stdout.write(f"\033[{prev_lines}A")  # Move up by previous frame's lines
-                    sys.stdout.write("\033[J")  # Clear from cursor to end of screen
-                print(frame, end="")  # Avoid double newlines
+                    sys.stdout.write(f"\033[{prev_lines}A")
+                    sys.stdout.write("\033[J")
+                print(frame, end="")
                 sys.stdout.flush()
                 prev_lines = lines
-                time.sleep(0.125)
+                time.sleep(delay)
     else:
         print(all_frames[0])
