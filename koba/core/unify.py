@@ -59,7 +59,7 @@ def get_char(char, width, height, save=False):
                 
         char_image = crop_image(char_image)
         
-        char_image = char_image.resize((width, height), Image.Resampling.LANCZOS)
+        char_image = char_image.resize((width, height), Image.Resampling.BILINEAR)
         
         if save:
             os.makedirs("chars", exist_ok=True)
@@ -71,6 +71,14 @@ def get_char(char, width, height, save=False):
         char_cache[(char, width, height)] = char_arr
         return char_arr
 
+def pre_render_characters(characters, sizes, save_chars, progress_callback=None):
+    for size in sizes:
+        width, height = size
+        for char in characters:
+            get_char(char, width, height, save_chars)
+            if progress_callback:
+                progress_callback()
+
 def compare_character(char, block_arr, save_chars, engine):
     height, width = block_arr.shape
     
@@ -80,7 +88,7 @@ def compare_character(char, block_arr, save_chars, engine):
     
     if char_arr.shape != block_arr.shape:
         char_img = Image.fromarray(char_arr)
-        char_img = char_img.resize((width, height), Image.Resampling.LANCZOS)
+        char_img = char_img.resize((width, height), Image.Resampling.BILINEAR)
         char_arr = np.array(char_img)
     
     # compare arrays
@@ -107,14 +115,14 @@ def compare_character(char, block_arr, save_chars, engine):
             similarity = 0.0
             
     elif engine == "diff":
-        pixel_diff = np.sum(np.abs(block_arr.astype(np.float64) - char_arr.astype(np.float64)))
+        pixel_diff = np.sum(np.abs(block_arr.astype(np.int16) - char_arr.astype(np.int16)))
         max_diff = float(width * height * 255)
         if max_diff == 0:
             return 1.0
         dissimilarity = pixel_diff / max_diff
         similarity = 1.0 - dissimilarity
     elif engine == "mse":
-        mse = np.mean((block_arr.astype(np.float64) - char_arr.astype(np.float64)) ** 2)
+        mse = np.mean((block_arr.astype(np.int32) - char_arr.astype(np.int32)) ** 2)
         max_mse = 255.0 ** 2
         similarity = 1.0 - (mse / max_mse) if max_mse > 0 else 1.0
     elif engine == "ncc":
@@ -160,7 +168,7 @@ def get_character(img_arr, characters, engine, save_chars):
     max_similarity = float("-inf")
     best_match = " "
     for character in characters:
-        similarity = compare_character(character, img_arr, engine, save_chars)
+        similarity = compare_character(character, img_arr, save_chars, engine)
         if similarity > max_similarity:
             max_similarity = similarity
             best_match = character

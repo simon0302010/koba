@@ -112,6 +112,26 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     frame_count = getattr(img, 'n_frames', 1)
     logging.info(f"Image has {frame_count} frame(s).")
     is_gif = frame_count > 1
+
+    if is_gif:
+        from koba.core import unify, charsets
+        logging.info("Pre-rendering characters for GIF...")
+        first_frame = next(ImageSequence.Iterator(img))
+        width, height = first_frame.size
+        block_widths, block_heights, _ = core.calculate_block_sizes(width, height, char_aspect, scale)
+        unique_shapes = {(w, h) for w in set(block_widths) for h in set(block_heights)}
+        
+        characters = charsets.get_range(start_char, end_char)
+        
+        if font:
+            unify.font_path = font
+        
+        if abs(start_char - end_char) >= 400:
+            for char in tqdm(characters, total=len(characters), desc="Loading fonts"):
+                unify.get_font(char)
+
+        with tqdm(total=len(unique_shapes) * len(characters), desc="Pre-rendering characters", disable=logging_level != "DEBUG") as pbar:
+            unify.pre_render_characters(characters, unique_shapes, save_chars, pbar.update)
     
     frame_delays = []
     all_frames = []
@@ -142,7 +162,7 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
             for frame, delay in zip(all_frames, frame_delays):
                 lines = frame.count('\n')
                 if prev_lines > 0:
-                    sys.stdout.write(f"\033[{prev_lines}A")
+                    sys.stdout.write(f"\r\033[{prev_lines}A")
                     sys.stdout.write("\033[J")
                 print(frame, end="")
                 sys.stdout.flush()
