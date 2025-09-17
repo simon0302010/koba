@@ -13,20 +13,12 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from koba import __version__
 from koba.core import charsets, unify
 
-# Global cache for block processing results across frames (limited size)
-_block_cache = {}
-_max_cache_size = 10000  # Limit cache size to prevent memory issues
-
 def process_block(args):
     block, characters, engine, save_chars = args
-    return unify.get_character(block, characters, engine, save_chars)
+    return unify.get_character(block, characters, save_chars, engine)
 
 def calculate_block_sizes(width, height, char_aspect, scale):
-    try:
-        terminal_width = os.get_terminal_size().columns
-    except OSError:
-        # Fallback when no terminal is available (e.g., in CI/CD or non-interactive environments)
-        terminal_width = 80
+    terminal_width = os.get_terminal_size().columns
     chars_width = terminal_width
     
     min_block_width = 10 / char_aspect
@@ -118,29 +110,15 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
     characters = charsets.get_range(start_char, end_char)
     all_chars = ""
 
-    # prepare arguments with global caching
+    # prepare arguments
     unique_blocks = {block.tobytes(): block for block in blocks}
-    cache_key_base = f"{engine.lower()}_{start_char}_{end_char}"
-    
-    # Check cache for existing results
-    cached_results = {}
-    uncached_blocks = {}
-    for block_bytes, block in unique_blocks.items():
-        cache_key = f"{cache_key_base}_{block_bytes.hex()}"
-        if cache_key in _block_cache:
-            cached_results[block_bytes] = _block_cache[cache_key]
-        else:
-            uncached_blocks[block_bytes] = block
-    
-    logging.debug(f"Cache hit: {len(cached_results)}/{len(unique_blocks)} blocks")
-    
-    unique_block_args = [(block, characters, engine.lower(), save_chars) for block in uncached_blocks.values()]
+    unique_block_args = [(block, characters, engine.lower(), save_chars) for block in unique_blocks.values()]
 
     if font:
         unify.font_path = font
 
-    block_results = cached_results.copy()
-    if not single_threaded and uncached_blocks:
+    block_results = {}
+    if not single_threaded:
         with concurrent.futures.ProcessPoolExecutor() as executor:
             future_to_block = {
                 executor.submit(unify.get_character, *arg): arg[0] for arg in unique_block_args
@@ -153,30 +131,19 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
                     disable=not show_progress
                 ):
                     block = future_to_block[future]
-                    result = future.result()
-                    block_bytes = block.tobytes()
-                    block_results[block_bytes] = result
-                    # Cache the result with size limit
-                    cache_key = f"{cache_key_base}_{block_bytes.hex()}"
-                    if len(_block_cache) < _max_cache_size:
-                        _block_cache[cache_key] = result
+                    block_results[block.tobytes()] = future.result()
             except ValueError as e:
                 logging.critical(str(e))
                 sys.exit(1)
-    elif uncached_blocks:
+    else:
         for args in tqdm(
             unique_block_args,
             desc="Processing unique blocks (single-threaded)",
             disable=not show_progress
         ):
             block, characters, engine, save_chars = args
-            result = unify.get_character(block, characters, engine, save_chars)
-            block_bytes = block.tobytes()
-            block_results[block_bytes] = result
-            # Cache the result with size limit
-            cache_key = f"{cache_key_base}_{block_bytes.hex()}"
-            if len(_block_cache) < _max_cache_size:
-                _block_cache[cache_key] = result
+            result = unify.get_character(block, characters, save_chars, engine)
+            block_results[block.tobytes()] = result
 
     results = [block_results[block.tobytes()] for block in blocks]
 

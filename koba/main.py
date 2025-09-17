@@ -118,31 +118,10 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
         logging.info("Pre-rendering characters for GIF...")
         first_frame = next(ImageSequence.Iterator(img))
         width, height = first_frame.size
-        
-        # For large GIFs, automatically reduce scale to improve performance  
-        if width * height > 200000:  # > 200k pixels
-            scale = min(scale, 0.3)  # Limit to 30% of terminal width
-            logging.info(f"Large GIF detected, reducing scale to {scale} for better performance")
-        
         block_widths, block_heights, _ = core.calculate_block_sizes(width, height, char_aspect, scale)
         unique_shapes = {(w, h) for w in set(block_widths) for h in set(block_heights)}
         
-        # Use a more optimized character set for GIFs if using default range
-        if char_range == "32-126":
-            # Use a much smaller, high-contrast character set for better GIF performance
-            # Focus on most visually distinct characters
-            start_char, end_char = 32, 64  # Reduce to ~32 characters
-            logging.info("Using highly optimized character set for GIF processing")
-        
         characters = charsets.get_range(start_char, end_char)
-        # Reorder characters by visual density for better early termination
-        if char_range == "32-126":
-            # Most effective characters for fast matching - reduced set
-            priority_chars = ['@', '#', 'M', 'W', '&', '%', 'B', 'X', 'I', '/', '|', '*', '+', '=', '-', '.', '_', ' ']
-            # Use only priority characters for maximum speed
-            characters = [char for char in priority_chars if char in characters]
-            if len(characters) < 15:  # Ensure minimum set
-                characters = charsets.get_range(32, 64)  # Fallback to reduced range
         
         if font:
             unify.font_path = font
@@ -165,13 +144,9 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
                 frame = ImageOps.invert(frame)
             if stretch_contrast:
                 frame = ImageOps.autocontrast(frame)
-        # Use fastest engine for GIF processing unless specifically overridden
-        gif_engine = "brightness" if is_gif and engine == "diff" else engine
-        # Force single-threaded for GIFs to avoid multiprocessing overhead on small blocks
-        gif_single_threaded = True if is_gif else single_threaded
         all_frames.append(core.process(
-            frame, char_aspect, scale, gif_engine, color, invert, stretch_contrast,
-            save_blocks, start_char, end_char, save_chars, font, gif_single_threaded, show_progress=not is_gif
+            frame, char_aspect, scale, engine, color, invert, stretch_contrast,
+            save_blocks, start_char, end_char, save_chars, font, single_threaded, show_progress=not is_gif
         ))
         
         delay = frame.info.get("duration", 100)
