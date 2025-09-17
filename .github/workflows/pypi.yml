@@ -1,9 +1,10 @@
-name: Publish to Pypi
+name: Publish to PyPi
 
 on:
+  workflow_dispatch:
   push:
     tags:
-      - "v*"  # Only run when a tag starting with "v" is pushed (e.g. v1.0.0)
+      - '*'
 
 jobs:
   build-and-publish:
