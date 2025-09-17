@@ -84,9 +84,18 @@ logging.basicConfig(
     is_flag=True,
     help="Renders the image in color."
 )
-def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range, stretch_contrast, scale, invert, single_threaded, color):
+@click.option(
+    "--fast-color",
+    is_flag=True,
+    help="Enables color and uses █ (U+2588) to improve processing speed. Only recommended for animated pictures."
+)
+def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range, stretch_contrast, scale, invert, single_threaded, color, fast_color):
     # update logging level
     logging.getLogger().setLevel(getattr(logging, logging_level.upper(), logging.ERROR))
+    
+    if fast_color:
+        color = True
+        char_range = "9608-9608"
     
     if font and not font.endswith(".ttf"):
         logging.critical("Please provide a font in TTF format.")

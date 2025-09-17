@@ -107,48 +107,53 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
             img_block = Image.fromarray(block)
             img_block.save(os.path.join(blocks_dir, f"{idx:04d}.png"))
     
-    characters = charsets.get_range(start_char, end_char)
-    all_chars = ""
-
-    # prepare arguments
-    unique_blocks = {block.tobytes(): block for block in blocks}
-    unique_block_args = [(block, characters, engine.lower(), save_chars) for block in unique_blocks.values()]
-
-    if font:
-        unify.font_path = font
-
-    block_results = {}
-    if not single_threaded:
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            future_to_block = {
-                executor.submit(unify.get_character, *arg): arg[0] for arg in unique_block_args
-            }
-            try:
-                for future in tqdm(
-                    concurrent.futures.as_completed(future_to_block),
-                    total=len(future_to_block),
-                    desc="Processing unique blocks",
-                    disable=not show_progress
-                ):
-                    block = future_to_block[future]
-                    block_results[block.tobytes()] = future.result()
-            except ValueError as e:
-                logging.critical(str(e))
-                sys.exit(1)
-    else:
-        for args in tqdm(
-            unique_block_args,
-            desc="Processing unique blocks (single-threaded)",
-            disable=not show_progress
-        ):
-            block, characters, engine, save_chars = args
-            result = unify.get_character(block, characters, save_chars, engine)
-            block_results[block.tobytes()] = result
-
-    results = [block_results[block.tobytes()] for block in blocks]
-
     print_chars = ""
-    all_chars = "".join(results)
+    
+    if start_char == end_char:
+        all_chars = chr(start_char) * len(blocks)
+    else:
+        characters = charsets.get_range(start_char, end_char)
+        all_chars = ""
+
+        # prepare arguments
+        unique_blocks = {block.tobytes(): block for block in blocks}
+        unique_block_args = [(block, characters, engine.lower(), save_chars) for block in unique_blocks.values()]
+
+        if font:
+            unify.font_path = font
+
+        block_results = {}
+        if not single_threaded:
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                future_to_block = {
+                    executor.submit(unify.get_character, *arg): arg[0] for arg in unique_block_args
+                }
+                try:
+                    for future in tqdm(
+                        concurrent.futures.as_completed(future_to_block),
+                        total=len(future_to_block),
+                        desc="Processing unique blocks",
+                        disable=not show_progress
+                    ):
+                        block = future_to_block[future]
+                        block_results[block.tobytes()] = future.result()
+                except ValueError as e:
+                    logging.critical(str(e))
+                    sys.exit(1)
+        else:
+            for args in tqdm(
+                unique_block_args,
+                desc="Processing unique blocks (single-threaded)",
+                disable=not show_progress
+            ):
+                block, characters, engine, save_chars = args
+                result = unify.get_character(block, characters, save_chars, engine)
+                block_results[block.tobytes()] = result
+
+        results = [block_results[block.tobytes()] for block in blocks]
+        
+        all_chars = "".join(results)
+    
     lines = [all_chars[i:i+chars_width] for i in range(0, len(all_chars), chars_width)]
     flat_chars = "".join(lines)
     logging.debug(f"Char count: {len(flat_chars)}")
