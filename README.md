@@ -4,7 +4,7 @@
 ![PyPI - Version](https://img.shields.io/pypi/v/koba)
 
 # koba
-A terminal image renderer that can construct images using any set of unicode symbols.
+A terminal image renderer that can construct images using any set of unicode symbols
 
 ```
 .......................................................................
@@ -75,6 +75,7 @@ koba logo.png --font ./fonts/custom.ttf --char-range 65-90 --engine mse
 ## Features
 
 - 🎨 **Multiple similarity engines** for different visual styles
+- 🌈 **Color rendering support** for truecolor terminals (`--color`)
 - 🔤 **Custom character ranges** including Unicode, Braille, and symbols
 - 🖋️ **Custom font support** with TTF files
 - ⚡ **Multi-threaded processing** for fast rendering
