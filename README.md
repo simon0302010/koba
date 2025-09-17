@@ -74,6 +74,7 @@ koba logo.png --font ./fonts/custom.ttf --char-range 65-90 --engine mse
 
 ## Features
 
+- 🎞️ **Animated image support**: Render animated images (e.g., GIFs) directly in the terminal
 - 🎨 **Multiple similarity engines** for different visual styles
 - 🌈 **Color rendering support** for truecolor terminals (`--color`)
 - 🔤 **Custom character ranges** including Unicode, Braille, and symbols
