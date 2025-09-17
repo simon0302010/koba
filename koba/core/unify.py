@@ -167,10 +167,35 @@ def compare_character(char, block_arr, save_chars, engine):
 def get_character(img_arr, characters, engine, save_chars):
     max_similarity = float("-inf")
     best_match = " "
+    
+    # For GIFs, use more aggressive early termination based on engine
+    early_termination_threshold = 0.95 if engine == "brightness" else 0.99
+    
+    # Quick heuristic: if block is very uniform, use simple character
+    if engine == "brightness":
+        block_std = np.std(img_arr)
+        block_mean = np.mean(img_arr)
+        
+        # Very uniform blocks - quick selection
+        if block_std < 10:  # Very uniform
+            if block_mean < 50:
+                return ' '  # Very dark -> space
+            elif block_mean > 200:
+                return '.'  # Very light -> dot
+            elif block_mean > 150:
+                return '_'  # Light -> underscore
+            elif block_mean > 100:
+                return '-'  # Medium-light -> dash
+            else:
+                return '='  # Medium -> equals
+    
     for character in characters:
         similarity = compare_character(character, img_arr, save_chars, engine)
         if similarity > max_similarity:
             max_similarity = similarity
             best_match = character
+            # Early termination for good matches to speed up processing
+            if similarity > early_termination_threshold:
+                break
     
     return best_match
