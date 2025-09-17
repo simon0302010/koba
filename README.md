@@ -4,7 +4,7 @@
 ![PyPI - Version](https://img.shields.io/pypi/v/koba)
 
 # koba
-A terminal image renderer that can construct images using any set of unicode symbols.
+A terminal image renderer that can construct images using any set of unicode symbols
 
 ```
 .......................................................................
@@ -54,6 +54,9 @@ koba image.png
 # Use different similarity engine
 koba image.jpg --engine diff
 
+# Render in color
+koba image.jpg --color
+
 # Custom character set (box drawing characters)
 koba image.png --char-range 9600-9632
 
@@ -72,6 +75,7 @@ koba logo.png --font ./fonts/custom.ttf --char-range 65-90 --engine mse
 ## Features
 
 - 🎨 **Multiple similarity engines** for different visual styles
+- 🌈 **Color rendering support** for truecolor terminals (`--color`)
 - 🔤 **Custom character ranges** including Unicode, Braille, and symbols
 - 🖋️ **Custom font support** with TTF files
 - ⚡ **Multi-threaded processing** for fast rendering
@@ -92,6 +96,7 @@ python3 -m koba [OPTIONS] FILE
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--version` | Show version and exit | |
+| `--color` | Render in color | |
 | `--char-aspect INTEGER` | Character height-to-width ratio for aspect-correct output | `2` |
 | `--logging-level TEXT` | Set verbosity: CRITICAL, ERROR, WARNING, INFO, DEBUG | `ERROR` |
 | `--save-blocks` | Save image blocks as PNG files in 'blocks/' directory | |

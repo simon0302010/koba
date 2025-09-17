@@ -87,7 +87,12 @@ def process_block(args):
     is_flag=True,
     help="Runs the whole program single-threaded."
 )
-def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range, stretch_contrast, scale, invert, single_threaded):
+@click.option(
+    "--color",
+    is_flag=True,
+    help="Renders the image in color."
+)
+def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range, stretch_contrast, scale, invert, single_threaded, color):
     # update logging level
     logging.getLogger().setLevel(getattr(logging, logging_level.upper(), logging.ERROR))
     
@@ -110,11 +115,14 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     # loading file and reading basic info
     try:
         # convert to grayscale and apply constrast stretching
-        img = Image.open(file).convert("L")
-        if invert:
-            img = ImageOps.invert(img)
-        if stretch_contrast:
-            img = ImageOps.autocontrast(img)
+        if color:
+            img = Image.open(file).convert("RGB")
+        else:
+            img = Image.open(file).convert("L")
+            if invert:
+                img = ImageOps.invert(img)
+            if stretch_contrast:
+                img = ImageOps.autocontrast(img)
     except UnidentifiedImageError:
         logging.critical(f"Unsupported or unreadable image format for file: {file}.")
         sys.exit(1)
@@ -162,16 +170,40 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
         sys.exit(1)
 
     # splitting into blocks with variable sizes
+    block_colors = []
     blocks = []
     y = 0
     for bh in block_heights:
         x = 0
         for bw in block_widths:
             block = img_arr[y:y+bh, x:x+bw]
+            if block.ndim == 3: # check if block is rgb
+                if color:
+                    block_color = block.mean(axis=(0, 1)).astype(int)
+                    block_colors.append(block_color)
+                    
+                    block = Image.fromarray(block).convert("L")
+                    if invert:
+                        block = ImageOps.invert(block)
+                    if stretch_contrast:
+                        block = ImageOps.autocontrast(block)
+                    block = np.array(block)
+                else:
+                    logging.warning("Block has color but --color wasn't used.")
+                    block = Image.fromarray(block).convert("L")
+                    block = np.array(block)
+                
             blocks.append(block)
             x += bw
         y += bh
-
+        
+    if color:
+        if len(block_colors) != len(blocks):
+            logging.critical("Block colors don't match the blocks. Falling back to grayscale.")
+            color = False
+        else:
+            logging.debug(f"Block colors: {block_colors[:3]} ...")
+    
     logging.debug(f"{len(blocks)} blocks created.")
     
     if save_blocks:
@@ -219,7 +251,22 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
 
     logging.info(f"Took {round(time.time() - start_time, 2)}s")
 
+    print_chars = ""
     all_chars = "".join(results)
-    all_chars = '\n'.join(all_chars[i:i+chars_width] for i in range(0, len(all_chars), chars_width))
-    print()
-    print(all_chars)
+    lines = [all_chars[i:i+chars_width] for i in range(0, len(all_chars), chars_width)]
+    flat_chars = "".join(lines)
+    logging.debug(f"Char count: {len(flat_chars)}")
+    logging.debug(f"Colored blocks: {len(block_colors)}")
+
+    color_idx = 0
+    for c in '\n'.join(lines):
+        if c == '\n':
+            print_chars += '\n'
+        elif color_idx < len(block_colors):
+            r, g, b = block_colors[color_idx]
+            print_chars += f"\033[38;2;{r};{g};{b}m{c}\033[0m"
+            color_idx += 1
+        else:
+            print_chars += c
+
+    print(print_chars)
