@@ -18,7 +18,11 @@ def process_block(args):
     return unify.get_character(block, characters, save_chars, engine)
 
 def calculate_block_sizes(width, height, char_aspect, scale):
-    terminal_width = os.get_terminal_size().columns
+    try:
+        terminal_width = os.get_terminal_size().columns
+    except OSError:
+        # Fallback when no terminal is available (e.g., in CI/CD or non-interactive environments)
+        terminal_width = 80
     chars_width = terminal_width
     
     min_block_width = 10 / char_aspect
