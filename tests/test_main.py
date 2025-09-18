@@ -2,7 +2,6 @@ from click.testing import CliRunner
 from koba.main import main
 from PIL import Image
 import os
-import pytest
 
 def test_cli_runs_successfully(monkeypatch):
     # mock get_terminal_size to avoid errors

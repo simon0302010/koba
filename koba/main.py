@@ -5,7 +5,8 @@ import time
 import logging
 
 import click
-from PIL import Image, ImageOps, ImageSequence, UnidentifiedImageError
+from PIL import Image, ImageSequence, UnidentifiedImageError
+from moviepy import VideoFileClip
 from tqdm import tqdm
 
 from koba import __version__
@@ -111,21 +112,41 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
         logging.critical("Wrong format for char-range.")
         sys.exit(1)
     
+    media_type = None
+    
     # loading file and reading basic info
     try:
         img = Image.open(file)
+        frame_count = getattr(img, 'n_frames', 1)
+        if frame_count == 1:
+            media_type = "image"
+        else:
+            media_type = "gif"
+        frames = [frame.copy() for frame in ImageSequence.Iterator(img)]
     except UnidentifiedImageError:
-        logging.critical(f"Unsupported or unreadable image format for file: {file}.")
-        sys.exit(1)
+        try:
+            clip = VideoFileClip(file)
+            frames = [Image.fromarray(f) for f in clip.iter_frames()]
+            frame_count = len(frames)
+            if frame_count > 1:
+                media_type = "video"
+            else:
+                media_type = "image"
+        except Exception as e:
+            logging.critical(f"Unsupported or unreadable image/video format for file: {file}. Error: {e}")
+            sys.exit(1)
+    else:
+        if not frames:
+            logging.critical(f"No frames found in image file: {file}.")
+            sys.exit(1)
     
-    frame_count = getattr(img, 'n_frames', 1)
     logging.info(f"Image has {frame_count} frame(s).")
-    is_gif = frame_count > 1
+    is_animated = frame_count > 1
 
-    if is_gif:
+    if is_animated:
         from koba.core import unify, charsets
-        logging.info("Pre-rendering characters for GIF...")
-        first_frame = next(ImageSequence.Iterator(img))
+        logging.info("Pre-rendering characters...")
+        first_frame = frames[0]
         width, height = first_frame.size
         block_widths, block_heights, _ = core.calculate_block_sizes(width, height, char_aspect, scale)
         unique_shapes = {(w, h) for w in set(block_widths) for h in set(block_heights)}
@@ -144,21 +165,29 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     
     frame_delays = []
     all_frames = []
-    for i, frame in tqdm(enumerate(ImageSequence.Iterator(img)), total=frame_count, desc="Processing frames", disable=not is_gif):
+    for i, frame in tqdm(enumerate(frames), total=frame_count, desc="Processing frames", disable=not is_animated):
         all_frames.append(core.process(
             frame, char_aspect, scale, engine, color, invert, stretch_contrast,
-            save_blocks, start_char, end_char, save_chars, font, single_threaded, show_progress=not is_gif
+            save_blocks, start_char, end_char, save_chars, font, single_threaded, show_progress=not is_animated
         ))
+        if media_type == "gif":
+            delay = frame.info.get("duration", 100) / 1000
+        elif media_type == "video":
+            delay = 1 / clip.fps
+        elif media_type == "image":
+            delay = None
         
-        delay = frame.info.get("duration", 100)
         if not delay or delay == 0:
-            delay = 100      
-        frame_delays.append(delay / 1000.0)
+            delay = 0.1
+        frame_delays.append(delay)
 
     logging.debug(f"Frame delays: {frame_delays[:3]} ...")
 
+    if media_type == "video":
+        input("Press Enter to play: ")
+
     prev_lines = 0
-    if is_gif:
+    if is_animated:
         while True:
             for frame, delay in zip(all_frames, frame_delays):
                 lines = frame.count('\n')
@@ -169,5 +198,8 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
                 sys.stdout.flush()
                 prev_lines = lines
                 time.sleep(delay)
+                
+            if media_type == "video":
+                break
     else:
         print(all_frames[0])
