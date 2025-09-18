@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "koba"
 version = "0.4.2"
-description = "Terminal Image Renderer"
+description = "Terminal Image/Video Renderer"
 readme = "README.md"
 requires-python = ">=3.9,<4.0"
 license = { file = "LICENSE" }
@@ -32,7 +32,7 @@ classifiers = [
 test = ["pytest", "pytest-mock"]
 
 [project.urls]
-Homepage = "https://github.com/simon0302010/Kommandozeilenbildanzeige"
+Homepage = "https://github.com/simon0302010/koba"
 
 [project.scripts]
 koba = "koba.main:main"
