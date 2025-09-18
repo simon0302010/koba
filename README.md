@@ -98,6 +98,7 @@ python3 -m koba [OPTIONS] FILE
 |--------|-------------|---------|
 | `--version` | Show version and exit | |
 | `--color` | Render in color | |
+| `--fast-color` | Enable color and use █ (U+2588) for faster processing (recommended for animated images) | |
 | `--char-aspect INTEGER` | Character height-to-width ratio for aspect-correct output | `2` |
 | `--logging-level TEXT` | Set verbosity: CRITICAL, ERROR, WARNING, INFO, DEBUG | `ERROR` |
 | `--save-blocks` | Save image blocks as PNG files in 'blocks/' directory | |

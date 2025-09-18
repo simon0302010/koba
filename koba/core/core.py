@@ -13,21 +13,14 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from koba import __version__
 from koba.core import charsets, unify
 
-
 def process_block(args):
     block, characters, engine, save_chars = args
     return unify.get_character(block, characters, save_chars, engine)
 
-def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, save_blocks, start_char, end_char, save_chars, font, single_threaded, show_progress=False):
-    img_arr = np.array(img)
-    height, width = img_arr.shape[:2]
-    logging.debug(f"Image is {width}x{height} pixels.")
-    
-    # calculating important metrics
+def calculate_block_sizes(width, height, char_aspect, scale):
     terminal_width = os.get_terminal_size().columns
     chars_width = terminal_width
     
-    # calculate required sizes
     min_block_width = 10 / char_aspect
     min_block_height = 10
 
@@ -44,7 +37,6 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
 
     chars_height = math.ceil((height * chars_width / width) / char_aspect)
     
-    # recalculate block sizes
     block_widths = [width // chars_width] * chars_width
     for i in range(width % chars_width):
         block_widths[i] += 1
@@ -52,9 +44,27 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
     block_heights = [height // chars_height] * chars_height
     for i in range(height % chars_height):
         block_heights[i] += 1
+        
+    return block_widths, block_heights, chars_width
 
-    logging.debug(f"Terminal is {terminal_width} chars wide.")
-    logging.debug(f"Image will be {chars_width}x{chars_height} chars.")
+def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, save_blocks, start_char, end_char, save_chars, font, single_threaded, show_progress=False):
+    if color:
+        img_color = img.convert("RGB")
+        img_arr_color = np.array(img_color)
+    
+    img = img.convert("L")
+    if invert:
+        img = ImageOps.invert(img)
+    if stretch_contrast:
+        img = ImageOps.autocontrast(img)
+    
+    img_arr = np.array(img)
+    height, width = img_arr.shape[:2]
+    logging.debug(f"Image is {width}x{height} pixels.")
+    
+    block_widths, block_heights, chars_width = calculate_block_sizes(width, height, char_aspect, scale)
+
+    logging.debug(f"Image will be {chars_width}x{len(block_heights)} chars.")
     logging.debug(f"Block widths: {block_widths[:5]}... (total {len(block_widths)})")
     logging.debug(f"Block heights: {block_heights[:5]}... (total {len(block_heights)})")
 
@@ -69,27 +79,22 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
     for bh in block_heights:
         x = 0
         for bw in block_widths:
-            block = img_arr[y:y+bh, x:x+bw]
-            if block.ndim == 3: # check if block is rgb
-                if color:
-                    block_color = block.mean(axis=(0, 1)).astype(int)
-                    block_colors.append(block_color)
-                    
-                    block = Image.fromarray(block).convert("L")
-                    if invert:
-                        block = ImageOps.invert(block)
-                    if stretch_contrast:
-                        block = ImageOps.autocontrast(block)
-                    block = np.array(block)
-                else:
-                    logging.warning("Block has color but --color wasn't used.")
-                    block = Image.fromarray(block).convert("L")
-                    block = np.array(block)
-                
+            block = img_arr[y:y+bh, x:x+bw]                
             blocks.append(block)
             x += bw
         y += bh
-        
+    
+    if color:
+        y = 0
+        for bh in block_heights:
+            x = 0
+            for bw in block_widths:
+                block = img_arr_color[y:y+bh, x:x+bw]
+                block_color = block.mean(axis=(0, 1)).astype(int)            
+                block_colors.append(block_color)
+                x += bw
+            y += bh
+    
     if color:
         if len(block_colors) != len(blocks):
             logging.critical("Block colors don't match the blocks. Falling back to grayscale.")
@@ -107,51 +112,53 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
             img_block = Image.fromarray(block)
             img_block.save(os.path.join(blocks_dir, f"{idx:04d}.png"))
     
-    characters = charsets.get_range(start_char, end_char)
-    all_chars = ""
-
-    # prepare arguments
-    block_args = [(block, characters, engine.lower(), save_chars) for block in blocks]
-
-    if font:
-        unify.font_path = font
-
-    if abs(start_char - end_char) >= 400:
-        for char in tqdm(characters, total=len(characters), desc="Loading fonts"):
-            unify.get_font(char)
-
-    if not single_threaded:
-        results = [""] * len(blocks)
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            future_to_idx = {
-                executor.submit(process_block, arg): idx
-                for idx, arg in enumerate(block_args)
-            }
-            try:
-                for future in tqdm(
-                    concurrent.futures.as_completed(future_to_idx),
-                    total=len(future_to_idx),
-                    desc="Processing blocks",
-                    disable=not show_progress
-                ):
-                    idx = future_to_idx[future]
-                    results[idx] = future.result()
-            except ValueError as e:
-                logging.critical(str(e))
-                sys.exit(1)
-    else:
-        results = []
-        for args in tqdm(
-            block_args,
-            desc="Processing blocks (single-threaded)",
-            disable=not show_progress
-        ):
-            block, characters, engine, save_chars = args
-            result = unify.get_character(block, characters, save_chars, engine)
-            results.append(result)
-
     print_chars = ""
-    all_chars = "".join(results)
+    
+    if start_char == end_char:
+        all_chars = chr(start_char) * len(blocks)
+    else:
+        characters = charsets.get_range(start_char, end_char)
+        all_chars = ""
+
+        # prepare arguments
+        unique_blocks = {block.tobytes(): block for block in blocks}
+        unique_block_args = [(block, characters, engine.lower(), save_chars) for block in unique_blocks.values()]
+
+        if font:
+            unify.font_path = font
+
+        block_results = {}
+        if not single_threaded:
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                future_to_block = {
+                    executor.submit(unify.get_character, *arg): arg[0] for arg in unique_block_args
+                }
+                try:
+                    for future in tqdm(
+                        concurrent.futures.as_completed(future_to_block),
+                        total=len(future_to_block),
+                        desc="Processing unique blocks",
+                        disable=not show_progress
+                    ):
+                        block = future_to_block[future]
+                        block_results[block.tobytes()] = future.result()
+                except ValueError as e:
+                    logging.critical(str(e))
+                    sys.exit(1)
+        else:
+            for args in tqdm(
+                unique_block_args,
+                desc="Processing unique blocks (single-threaded)",
+                disable=not show_progress
+            ):
+                block, characters, engine, save_chars = args
+                result = unify.get_character(block, characters, save_chars, engine)
+                block_results[block.tobytes()] = result
+
+        results = [block_results[block.tobytes()] for block in blocks]
+        
+        all_chars = "".join(results)
+    
     lines = [all_chars[i:i+chars_width] for i in range(0, len(all_chars), chars_width)]
     flat_chars = "".join(lines)
     logging.debug(f"Char count: {len(flat_chars)}")
