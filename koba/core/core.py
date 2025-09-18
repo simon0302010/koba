@@ -48,6 +48,16 @@ def calculate_block_sizes(width, height, char_aspect, scale):
     return block_widths, block_heights, chars_width
 
 def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, save_blocks, start_char, end_char, save_chars, font, single_threaded, show_progress=False):
+    if color:
+        img_color = img.convert("RGB")
+        img_arr_color = np.array(img_color)
+    
+    img = img.convert("L")
+    if invert:
+        img = ImageOps.invert(img)
+    if stretch_contrast:
+        img = ImageOps.autocontrast(img)
+    
     img_arr = np.array(img)
     height, width = img_arr.shape[:2]
     logging.debug(f"Image is {width}x{height} pixels.")
@@ -69,27 +79,22 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
     for bh in block_heights:
         x = 0
         for bw in block_widths:
-            block = img_arr[y:y+bh, x:x+bw]
-            if block.ndim == 3: # check if block is rgb
-                if color:
-                    block_color = block.mean(axis=(0, 1)).astype(int)
-                    block_colors.append(block_color)
-                    
-                    block = Image.fromarray(block).convert("L")
-                    if invert:
-                        block = ImageOps.invert(block)
-                    if stretch_contrast:
-                        block = ImageOps.autocontrast(block)
-                    block = np.array(block)
-                else:
-                    logging.warning("Block has color but --color wasn't used.")
-                    block = Image.fromarray(block).convert("L")
-                    block = np.array(block)
-                
+            block = img_arr[y:y+bh, x:x+bw]                
             blocks.append(block)
             x += bw
         y += bh
-        
+    
+    if color:
+        y = 0
+        for bh in block_heights:
+            x = 0
+            for bw in block_widths:
+                block = img_arr_color[y:y+bh, x:x+bw]
+                block_color = block.mean(axis=(0, 1)).astype(int)            
+                block_colors.append(block_color)
+                x += bw
+            y += bh
+    
     if color:
         if len(block_colors) != len(blocks):
             logging.critical("Block colors don't match the blocks. Falling back to grayscale.")

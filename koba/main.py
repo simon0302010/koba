@@ -145,14 +145,6 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     frame_delays = []
     all_frames = []
     for i, frame in tqdm(enumerate(ImageSequence.Iterator(img)), total=frame_count, desc="Processing frames", disable=not is_gif):
-        if color:
-            frame = frame.convert("RGB")
-        else:
-            frame = frame.convert("L")
-            if invert:
-                frame = ImageOps.invert(frame)
-            if stretch_contrast:
-                frame = ImageOps.autocontrast(frame)
         all_frames.append(core.process(
             frame, char_aspect, scale, engine, color, invert, stretch_contrast,
             save_blocks, start_char, end_char, save_chars, font, single_threaded, show_progress=not is_gif
