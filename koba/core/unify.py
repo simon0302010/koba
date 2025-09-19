@@ -84,7 +84,7 @@ def compare_character(char, block_arr, save_chars, engine):
     
     char_arr = get_char(char, width, height, save=save_chars)
     if char_arr is None:
-        return 0.0
+        return 0.0, None
     
     if char_arr.shape != block_arr.shape:
         char_img = Image.fromarray(char_arr)
@@ -162,15 +162,17 @@ def compare_character(char, block_arr, save_chars, engine):
     else:
         raise ValueError(f"Invalid engine specified: {engine}")
         
-    return similarity
+    return similarity, char_arr
     
 def get_character(img_arr, characters, engine, save_chars):
     max_similarity = float("-inf")
     best_match = " "
+    best_char_arr = None
     for character in characters:
-        similarity = compare_character(character, img_arr, save_chars, engine)
+        similarity, char_arr = compare_character(character, img_arr, save_chars, engine)
         if similarity > max_similarity:
             max_similarity = similarity
             best_match = character
+            best_char_arr = char_arr
     
-    return best_match
+    return best_match, best_char_arr

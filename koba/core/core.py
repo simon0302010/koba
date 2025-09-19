@@ -113,6 +113,8 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
     
     if start_char == end_char:
         all_chars = chr(start_char) * len(blocks)
+        char_arr = unify.get_char(chr(start_char), blocks[0].shape[1], blocks[0].shape[0])
+        char_arrays = [char_arr] * len(blocks)
     else:
         characters = charsets.get_range(start_char, end_char)
         all_chars = ""
@@ -138,7 +140,7 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
                         disable=not show_progress
                     ):
                         block = future_to_block[future]
-                        block_results[block.tobytes()] = future.result()
+                        block_results[block.tobytes()] = future.result()  # (char, char_arr)
                 except ValueError as e:
                     logging.critical(str(e))
                     sys.exit(1)
@@ -149,13 +151,15 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
                 disable=not show_progress
             ):
                 block, characters, engine, save_chars = args
-                result = unify.get_character(block, characters, save_chars, engine)
+                result = unify.get_character(block, characters, save_chars, engine)  # (char, char_arr)
                 block_results[block.tobytes()] = result
 
         results = [block_results[block.tobytes()] for block in blocks]
-        
-        all_chars = "".join(results)
-    
+        all_chars = "".join([r[0] for r in results])
+        char_arrays = [r[1] for r in results]
+
+        results = [block_results[block.tobytes()] for block in blocks]
+            
     lines = [all_chars[i:i+chars_width] for i in range(0, len(all_chars), chars_width)]
     flat_chars = "".join(lines)
     logging.debug(f"Char count: {len(flat_chars)}")
@@ -172,4 +176,4 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
         else:
             print_chars += c
             
-    return print_chars
+    return print_chars, char_arrays, block_widths, block_heights

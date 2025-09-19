@@ -11,10 +11,13 @@ from moviepy import VideoFileClip
 from tqdm import tqdm
 
 from koba import __version__
-from koba.core import core
+from koba.core import core, render
 
 
-multiprocessing.set_start_method("spawn")
+try:
+    multiprocessing.set_start_method("spawn")
+except RuntimeError:
+    pass
 
 logging.basicConfig(
     format="{asctime} - {levelname} - {message}",
@@ -93,7 +96,13 @@ logging.basicConfig(
     is_flag=True,
     help="Enables color and uses █ (U+2588) to improve processing speed. Only recommended for animated pictures."
 )
-def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range, stretch_contrast, scale, invert, single_threaded, color, fast_color):
+@click.option(
+    "--output",
+    "-o",
+    help="Renders the result to a image.",
+    default=None
+)
+def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range, stretch_contrast, scale, invert, single_threaded, color, fast_color, output):
     # update logging level
     logging.getLogger().setLevel(getattr(logging, logging_level.upper(), logging.ERROR))
     
@@ -168,11 +177,15 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     
     frame_delays = []
     all_frames = []
+    char_arrays_list = []
     for i, frame in tqdm(enumerate(frames), total=frame_count, desc="Processing frames", disable=not is_animated):
-        all_frames.append(core.process(
+        print_chars, char_arrays, block_widths, block_heights = core.process(
             frame, char_aspect, scale, engine, color, invert, stretch_contrast,
             save_blocks, start_char, end_char, save_chars, font, single_threaded, show_progress=not is_animated
-        ))
+        )
+        all_frames.append(print_chars)
+        if output:
+            char_arrays_list.append(char_arrays)
         delay = 0
         if media_type == "gif":
             delay = frame.info.get("duration", 100) / 1000
@@ -213,4 +226,8 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
                     print("\nExiting.")
                     break
     else:
+        if output:
+            out_img = render.build_img(char_arrays_list[0], block_widths, block_heights)
+            out_img = Image.fromarray(out_img)
+            out_img.save(output)
         print(all_frames[0])
