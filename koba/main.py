@@ -206,7 +206,9 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
             if media_type == "video":
                 try:
                     input("\nPress [Enter] to replay, or Ctrl+C to quit: ")
-                    prev_lines += 1
+                    sys.stdout.write(f"\r\033[{prev_lines}A")
+                    sys.stdout.write("\033[J")
+                    sys.stdout.flush()
                 except KeyboardInterrupt:
                     print("\nExiting.")
                     break
