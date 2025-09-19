@@ -173,12 +173,13 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
             frame, char_aspect, scale, engine, color, invert, stretch_contrast,
             save_blocks, start_char, end_char, save_chars, font, single_threaded, show_progress=not is_animated
         ))
+        delay = 0
         if media_type == "gif":
             delay = frame.info.get("duration", 100) / 1000
         elif media_type == "video":
             delay = 1 / clip.fps
         elif media_type == "image":
-            delay = None
+            delay = 0.1
         
         if not delay or delay == 0:
             delay = 0.1
@@ -187,7 +188,7 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     logging.debug(f"Frame delays: {frame_delays[:3]} ...")
 
     if media_type == "video":
-        input("Press Enter to play: ")
+        input("Press [Enter] to start playback: ")
 
     prev_lines = 0
     if is_animated:
@@ -203,6 +204,11 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
                 time.sleep(delay)
                 
             if media_type == "video":
-                break
+                try:
+                    input("\nPress [Enter] to replay, or Ctrl+C to quit: ")
+                    prev_lines += 1
+                except KeyboardInterrupt:
+                    print("\nExiting.")
+                    break
     else:
         print(all_frames[0])
