@@ -5,6 +5,7 @@ import time
 import logging
 
 import click
+import multiprocessing
 from PIL import Image, ImageSequence, UnidentifiedImageError
 from moviepy import VideoFileClip
 from tqdm import tqdm
@@ -12,6 +13,8 @@ from tqdm import tqdm
 from koba import __version__
 from koba.core import core
 
+
+multiprocessing.set_start_method("spawn")
 
 logging.basicConfig(
     format="{asctime} - {levelname} - {message}",
