@@ -31,7 +31,7 @@ logging.basicConfig(
     )
 )
 @click.option(
-    "--char-aspect", default=2, show_default=True,
+    "--char-aspect", default=2.0, show_default=True,
     help="Character height-to-width ratio (for aspect-correct output)."
 )
 @click.option(
