@@ -1,16 +1,13 @@
 import os
 import sys
 import math
-import time
 import logging
 import concurrent.futures
 
-import click
 import numpy as np
 from tqdm import tqdm
-from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL import Image, ImageOps
 
-from koba import __version__
 from koba.core import charsets, unify
 
 def process_block(args):
