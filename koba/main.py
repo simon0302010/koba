@@ -7,6 +7,8 @@ import logging
 import click
 import itertools
 import multiprocessing
+import concurrent.futures
+import collections
 from PIL import Image, ImageSequence, UnidentifiedImageError
 from moviepy import VideoFileClip
 from tqdm import tqdm
@@ -94,7 +96,7 @@ logging.basicConfig(
 @click.option(
     "--fast-color",
     is_flag=True,
-    help="Enables color and uses █ (U+2588) to improve processing speed. Only recommended for animated pictures."
+    help="Enables color and uses â–ˆ (U+2588) to improve processing speed. Only recommended for animated pictures."
 )
 def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range, stretch_contrast, scale, invert, single_threaded, color, fast_color):
     # update logging level
@@ -149,48 +151,70 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     logging.info(f"Image has {frame_count} frame(s).")
     is_animated = frame_count > 1
 
-    if is_animated:
-        from koba.core import unify, charsets
-        logging.info("Pre-rendering characters...")
-        if isinstance(frames, list):
-            first_frame = frames[0]
-        else:
-            first_frame = next(frames)
-            frames = itertools.chain([first_frame], frames)
-        width, height = first_frame.size
-        block_widths, block_heights, _ = core.calculate_block_sizes(width, height, char_aspect, scale)
-        unique_shapes = {(w, h) for w in set(block_widths) for h in set(block_heights)}
-        
-        characters = charsets.get_range(start_char, end_char)
-        
-        if font:
-            unify.font_path = font
-        
-        if abs(start_char - end_char) >= 400:
-            for char in tqdm(characters, total=len(characters), desc="Loading fonts"):
-                unify.get_font(char)
+    executor = None
+    block_cache = collections.OrderedDict()
+    characters = None
 
-        with tqdm(total=len(unique_shapes) * len(characters), desc="Pre-rendering characters", disable=logging_level != "DEBUG") as pbar:
-            unify.pre_render_characters(characters, unique_shapes, save_chars, pbar.update)
-    
-    frame_delays = []
-    all_frames = []
-    for i, frame in tqdm(enumerate(frames), total=frame_count, desc="Processing frames", disable=not is_animated):
-        all_frames.append(core.process(
-            frame, char_aspect, scale, engine, color, invert, stretch_contrast,
-            save_blocks, start_char, end_char, save_chars, font, single_threaded, show_progress=not is_animated
-        ))
-        delay = 0
-        if media_type == "gif":
-            delay = frame.info.get("duration", 100) / 1000
-        elif media_type == "video":
-            delay = 1 / clip.fps
-        elif media_type == "image":
-            delay = 0.1
+    try:
+        if is_animated:
+            from koba.core import unify, charsets
+            logging.info("Pre-rendering characters...")
+            if isinstance(frames, list):
+                first_frame = frames[0]
+            else:
+                first_frame = next(frames)
+                frames = itertools.chain([first_frame], frames)
+            width, height = first_frame.size
+            block_widths, block_heights, _ = core.calculate_block_sizes(width, height, char_aspect, scale)
+            unique_shapes = {(w, h) for w in set(block_widths) for h in set(block_heights)}
+            
+            characters = charsets.get_range(start_char, end_char)
+            
+            if font:
+                unify.font_path = font
+            
+            if abs(start_char - end_char) >= 400:
+                for char in tqdm(characters, total=len(characters), desc="Loading fonts"):
+                    unify.get_font(char)
+
+            with tqdm(total=len(unique_shapes) * len(characters), desc="Pre-rendering characters", disable=logging_level != "DEBUG") as pbar:
+                unify.pre_render_characters(characters, unique_shapes, save_chars, pbar.update)
+
+            if not single_threaded:
+                from koba.core.core import init_worker
+                executor = concurrent.futures.ProcessPoolExecutor(initializer=init_worker, initargs=(characters,))
+
+        frame_delays = []
+        all_frames = []
         
-        if not delay or delay == 0:
-            delay = 0.1
-        frame_delays.append(delay)
+        # Pass characters for single-threaded animated case
+        chars_for_process = characters if (is_animated and single_threaded) else None
+
+        for i, frame in tqdm(enumerate(frames), total=frame_count, desc="Processing frames", disable=not is_animated):
+            all_frames.append(core.process(
+                frame, char_aspect, scale, engine, color, invert, stretch_contrast,
+                save_blocks, start_char, end_char, save_chars, font, 
+                single_threaded=single_threaded, 
+                show_progress=not is_animated,
+                executor=executor,
+                block_cache=block_cache,
+                characters=chars_for_process
+            ))
+            delay = 0
+            if media_type == "gif":
+                delay = frame.info.get("duration", 100) / 1000
+            elif media_type == "video":
+                delay = 1 / clip.fps
+            elif media_type == "image":
+                delay = 0.1
+            
+            if not delay or delay == 0:
+                delay = 0.1
+            frame_delays.append(delay)
+
+    finally:
+        if executor:
+            executor.shutdown()
 
     logging.debug(f"Frame delays: {frame_delays[:3]} ...")
 
