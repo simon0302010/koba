@@ -145,7 +145,7 @@ def process(
 
             if block_cache is not None:
                 block_cache.update(new_results)
-                while len(block_cache) > 10000:
+                while len(block_cache) > 1000000:
                     block_cache.popitem(last=False)
             frame_results_map.update(new_results)
 

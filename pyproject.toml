@@ -37,3 +37,6 @@ Homepage = "https://github.com/simon0302010/koba"
 
 [project.scripts]
 koba = "koba.main:main"
+
+[tool.setuptools.packages.find]
+include = ["koba*"]
