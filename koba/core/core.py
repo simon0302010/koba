@@ -149,7 +149,7 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
                 disable=not show_progress
             ):
                 block, characters, engine, save_chars = args
-                result = unify.get_character(block, characters, save_chars, engine)
+                result = unify.get_character(block, characters, engine, save_chars)
                 block_results[block.tobytes()] = result
 
         results = [block_results[block.tobytes()] for block in blocks]

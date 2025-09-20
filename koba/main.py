@@ -5,6 +5,7 @@ import time
 import logging
 
 import click
+import itertools
 import multiprocessing
 from PIL import Image, ImageSequence, UnidentifiedImageError
 from moviepy import VideoFileClip
@@ -13,8 +14,10 @@ from tqdm import tqdm
 from koba import __version__
 from koba.core import core
 
-
-multiprocessing.set_start_method("spawn")
+try:
+    multiprocessing.set_start_method("spawn")
+except RuntimeError:
+    pass
 
 logging.basicConfig(
     format="{asctime} - {levelname} - {message}",
@@ -129,8 +132,8 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     except UnidentifiedImageError:
         try:
             clip = VideoFileClip(file)
-            frames = [Image.fromarray(f) for f in clip.iter_frames()]
-            frame_count = len(frames)
+            frame_count = int(clip.fps * clip.duration)
+            frames = (Image.fromarray(f) for f in clip.iter_frames())
             if frame_count > 1:
                 media_type = "video"
             else:
@@ -149,7 +152,11 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     if is_animated:
         from koba.core import unify, charsets
         logging.info("Pre-rendering characters...")
-        first_frame = frames[0]
+        if isinstance(frames, list):
+            first_frame = frames[0]
+        else:
+            first_frame = next(frames)
+            frames = itertools.chain([first_frame], frames)
         width, height = first_frame.size
         block_widths, block_heights, _ = core.calculate_block_sizes(width, height, char_aspect, scale)
         unique_shapes = {(w, h) for w in set(block_widths) for h in set(block_heights)}
@@ -194,6 +201,7 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     if is_animated:
         while True:
             for frame, delay in zip(all_frames, frame_delays):
+                start = time.time()
                 lines = frame.count('\n')
                 if prev_lines > 0:
                     sys.stdout.write(f"\r\033[{prev_lines}A")
@@ -201,7 +209,9 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
                 print(frame, end="")
                 sys.stdout.flush()
                 prev_lines = lines
-                time.sleep(delay)
+                elapsed = time.time() - start
+                sleep_time = max(0, delay - elapsed)
+                time.sleep(sleep_time)
                 
             if media_type == "video":
                 try:
