@@ -139,12 +139,9 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     except UnidentifiedImageError:
         try:
             clip = VideoFileClip(file)
-            frames = [Image.fromarray(f) for f in clip.iter_frames()]
-            frame_count = len(frames)
-            if frame_count > 1:
-                media_type = "video"
-            else:
-                media_type = "image"
+            frame_count = int(clip.fps * clip.duration)
+            media_type = "video" if frame_count > 1 else "image"
+            frames = clip.iter_frames() 
         except Exception as e:
             logging.critical(f"Unsupported or unreadable image/video format for file: {file}. Error: {e}")
             sys.exit(1)
