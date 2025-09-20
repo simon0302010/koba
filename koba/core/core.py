@@ -10,9 +10,16 @@ from PIL import Image, ImageOps
 
 from koba.core import charsets, unify
 
-def process_block(args):
-    block, characters, engine, save_chars = args
-    return unify.get_character(block, characters, save_chars, engine)
+def init_worker(characters_for_worker):
+    """Initializer for each worker process."""
+    unify.set_worker_characters(characters_for_worker)
+
+def chunk_list(data, n):
+    """Splits a list into n roughly equal chunks."""
+    if n <= 0:
+        return [data]
+    k, m = divmod(len(data), n)
+    return [data[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n)]
 
 def calculate_block_sizes(width, height, char_aspect, scale):
     terminal_width = os.get_terminal_size().columns
@@ -117,42 +124,45 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
         characters = charsets.get_range(start_char, end_char)
         all_chars = ""
 
-        # prepare arguments
-        unique_blocks = {block.tobytes(): block for block in blocks}
-        unique_block_args = [(block, characters, engine.lower(), save_chars) for block in unique_blocks.values()]
+        unique_blocks_list = list({block.tobytes(): block for block in blocks}.values())
 
         if font:
             unify.font_path = font
 
         block_results = {}
         if not single_threaded:
-            with concurrent.futures.ProcessPoolExecutor() as executor:
-                future_to_block = {
-                    executor.submit(unify.get_character, *arg): arg[0] for arg in unique_block_args
-                }
+            with concurrent.futures.ProcessPoolExecutor(initializer=init_worker, initargs=(characters,)) as executor:
+                n_workers = executor._max_workers
+                if not n_workers or n_workers <= 0:
+                    n_workers = 1
+                
+                block_chunks = chunk_list(unique_blocks_list, n_workers)
+                chunk_args = [(chunk, engine.lower(), save_chars) for chunk in block_chunks if chunk]
+
+                futures = [executor.submit(unify.process_blocks_batch, *arg) for arg in chunk_args]
+
                 try:
                     for future in tqdm(
-                        concurrent.futures.as_completed(future_to_block),
-                        total=len(future_to_block),
-                        desc="Processing unique blocks",
+                        concurrent.futures.as_completed(futures),
+                        total=len(futures),
+                        desc="Processing block batches",
                         disable=not show_progress
                     ):
-                        block = future_to_block[future]
-                        block_results[block.tobytes()] = future.result()
+                        block_results.update(future.result())
                 except ValueError as e:
                     logging.critical(str(e))
                     sys.exit(1)
         else:
-            for args in tqdm(
-                unique_block_args,
+            init_worker(characters)
+            for block in tqdm(
+                unique_blocks_list,
                 desc="Processing unique blocks (single-threaded)",
                 disable=not show_progress
             ):
-                block, characters, engine, save_chars = args
-                result = unify.get_character(block, characters, engine, save_chars)
+                result = unify.get_character(block, engine.lower(), save_chars)
                 block_results[block.tobytes()] = result
 
-        results = [block_results[block.tobytes()] for block in blocks]
+        results = [block_results.get(block.tobytes()) for block in blocks]
         
         all_chars = "".join(results)
     

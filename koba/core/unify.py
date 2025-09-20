@@ -5,6 +5,12 @@ import numpy as np
 from ._unify_shared import get_char, pre_render_characters, crop_image, get_font
 from . import _unify_optim
 
+WORKER_CHARACTERS = None
+
+def set_worker_characters(characters):
+    """Set the character list for the worker process."""
+    global WORKER_CHARACTERS
+    WORKER_CHARACTERS = characters
 
 def compare_character(char, block_arr, save_chars, engine):
     if engine == "diff" or engine == "brightness":
@@ -93,13 +99,29 @@ def compare_character(char, block_arr, save_chars, engine):
         
     return similarity
     
-def get_character(img_arr, characters, engine, save_chars):
+def get_character(img_arr, engine, save_chars):
+    """
+    Finds the best character to represent an image block,
+    using the globally defined WORKER_CHARACTERS list.
+    """
     max_similarity = float("-inf")
     best_match = " "
-    for character in characters:
+
+    if WORKER_CHARACTERS is None:
+        raise ValueError("Worker characters have not been initialized.")
+
+    for character in WORKER_CHARACTERS:
         similarity = compare_character(character, img_arr, save_chars, engine)
         if similarity > max_similarity:
             max_similarity = similarity
             best_match = character
     
     return best_match
+
+def process_blocks_batch(blocks_batch, engine, save_chars):
+    """Processes a batch of blocks and returns a result map."""
+    results_map = {}
+    for block in blocks_batch:
+        results_map[block.tobytes()] = get_character(block, engine, save_chars)
+    return results_map
+
