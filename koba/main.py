@@ -156,8 +156,16 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     if is_animated:
         from koba.core import unify, charsets
         logging.info("Pre-rendering characters...")
-        first_frame = frames[0]
-        width, height = first_frame.size
+        if isinstance(frames, list):
+            first_frame = frames[0]
+        else:
+            first_frame = next(frames)
+            frames = (f for f in [first_frame] + list(frames))
+
+        if isinstance(first_frame, Image.Image):
+            width, height = first_frame.size
+        else:
+            height, width = first_frame.shape[:2]
         block_widths, block_heights, _ = core.calculate_block_sizes(width, height, char_aspect, scale)
         unique_shapes = {(w, h) for w in set(block_widths) for h in set(block_heights)}
         
@@ -177,6 +185,8 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
     all_frames = []
     char_arrays_list = []
     for i, frame in tqdm(enumerate(frames), total=frame_count, desc="Processing frames", disable=not is_animated):
+        if not isinstance(frame, Image.Image):
+            frame = Image.fromarray(frame)
         print_chars, char_arrays, block_widths, block_heights = core.process(
             frame, char_aspect, scale, engine, color, invert, stretch_contrast,
             save_blocks, start_char, end_char, save_chars, font, single_threaded, show_progress=not is_animated
