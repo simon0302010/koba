@@ -12,7 +12,7 @@ def test_compare_perfect_match(engine, mocker):
 
     mocker.patch('koba.core.unify.get_char', return_value=block)
 
-    similarity = unify.compare_character('a', block, False, engine)
+    similarity, _ = unify.compare_character('a', block, False, engine)
 
     if engine == 'hist':
         # hist produces a larger error than the other engines
@@ -29,7 +29,7 @@ def test_compare_perfect_mismatch(engine, mocker):
 
     mocker.patch('koba.core.unify.get_char', return_value=white_block)
 
-    similarity = unify.compare_character('a', black_block, False, engine)
+    similarity, _ = unify.compare_character('a', black_block, False, engine)
 
     if engine == 'ssim':
         # ssim can have a small error

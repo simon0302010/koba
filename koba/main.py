@@ -6,8 +6,9 @@ import logging
 
 import click
 import multiprocessing
+import numpy as np
 from PIL import Image, ImageSequence, UnidentifiedImageError
-from moviepy import VideoFileClip
+from moviepy import VideoFileClip, ImageSequenceClip
 from tqdm import tqdm
 
 from koba import __version__
@@ -200,6 +201,37 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
 
     logging.debug(f"Frame delays: {frame_delays[:3]} ...")
 
+    # TODO: add color
+    if output and media_type == "video":
+        logging.debug("Starting rendering of video.")
+        frame_arrays = []
+        for char_arrays in char_arrays_list:
+            img = render.build_img(char_arrays, block_widths, block_heights)
+            if img.ndim == 2:  # grayscale
+                img = np.stack([img]*3, axis=-1)  # convert to RGB
+            frame_arrays.append(img)
+        out_clip = ImageSequenceClip(frame_arrays, clip.fps)
+        # add audio
+        if hasattr(clip, "audio") and clip.audio is not None:
+            out_clip = out_clip.with_audio(clip.audio)
+        out_clip.write_videofile(output)
+        
+    if output and media_type == "gif":
+        logging.debug("Starting rendering of GIF.")
+        out_imgs = []
+        for char_arrays in char_arrays_list:
+            img = render.build_img(char_arrays, block_widths, block_heights)
+            if img.ndim == 2:
+                img = np.stack([img]*3, axis=-1)
+            out_imgs.append(Image.fromarray(img.astype(np.uint8)))
+        out_imgs[0].save(
+            output,
+            save_all=True,
+            append_images=out_imgs[1:],
+            duration=[int(d * 1000) for d in frame_delays],
+            loop=0
+        )
+
     if media_type == "video":
         input("Press [Enter] to start playback: ")
 
@@ -226,6 +258,7 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
                     print("\nExiting.")
                     break
     else:
+        # save image to file
         if output:
             out_img = render.build_img(char_arrays_list[0], block_widths, block_heights)
             out_img = Image.fromarray(out_img)
