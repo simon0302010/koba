@@ -81,7 +81,7 @@ logging.basicConfig(
 @click.option(
     "--invert",
     is_flag=True,
-    help="Inverts the image before processing."
+    help="Inverts the image for processing (Color will not be inverted when using --color)."
 )
 @click.option(
     "--single-threaded",

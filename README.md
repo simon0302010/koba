@@ -32,7 +32,8 @@ A terminal image renderer that can construct images using any set of unicode sym
 
 ## Demo
 
-https://github.com/user-attachments/assets/c41a4255-57bf-4cb8-8cbd-000731950d45
+Click the image to watch the video on YouTube:
+[![Video Demo](http://img.youtube.com/vi/1B3pHQXGauI/0.jpg)](http://www.youtube.com/watch?v=1B3pHQXGauI "Bad Apple in ASCII Art")
 
 ## Installation
 
@@ -42,7 +43,7 @@ pip install koba
 
 > **No Python?**  
 > You can also download a binary for Linux, Windows, or macOS from the [releases tab](https://github.com/simon0302010/koba/releases).
-> **Note:** These binaries are slower and not recommended unless you cannot use Python. They might also be detected as viruses by some antivirus software.
+> **Note:** These binaries are slower, sometimes outdated and not recommended unless you cannot use Python. They might also be detected as viruses by some antivirus software.
 > **They must be run from the command line.**
 
 ## Quick Start & Examples
@@ -54,8 +55,14 @@ koba image.png
 # Use different similarity engine
 koba image.jpg --engine diff
 
-# Render in color
-koba image.jpg --color
+# Render GIF in color
+koba image.gif --color
+
+# Render Video in color
+koba video.mp4 --color
+
+# Render Video in color with fast mode (only using █ character)
+koba video.mp4 --fast-color
 
 # Custom character set (box drawing characters)
 koba image.png --char-range 9600-9632
@@ -105,9 +112,11 @@ python3 -m koba [OPTIONS] FILE
 | `--save-chars` | Save rendered character images in 'chars/' directory | |
 | `-e, --engine TEXT` | Similarity metric (see engines below) | `diff` |
 | `--font TEXT` | Path to custom TTF font file | |
-| `--char-range TEXT` | Unicode range as start-end (e.g., 32-128) | `32-128` |
+| `--char-range TEXT` | Unicode range as start-end (e.g., 32-128) | `32-126` |
 | `--stretch-contrast` | Stretch image contrast to potentially improve results  | |
 | `--scale FLOAT` | Scale factor for image display | `1.0` |
+| `--invert` | Inverts the image for processing (Color will not be inverted when using `--color`). | |
+| `--single-threaded` | Disable multi-threading | |
 
 ## Similarity Engines
 
