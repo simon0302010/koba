@@ -1,45 +1,90 @@
 # .github/workflows/pypi.yml
-
 name: Publish Python distributions to PyPI
 
 on:
   push:
     tags:
-      - 'v*.*.*' # Trigger on version tags like v1.2.3
+      - 'v*.*.*'
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build wheels for ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+  build_linux:
+    name: Build Linux wheels (${{ matrix.arch }})
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        arch: [x86_64, aarch64]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up QEMU for multi-architecture builds on Linux
-        if: runner.os == 'Linux'
+      - name: Set up QEMU for multi-architecture builds (ARM)
+        if: matrix.arch == 'aarch64'
         uses: docker/setup-qemu-action@v3
 
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.20.0
-        env:
-          CIBW_SKIP: "pp* cp3?-manylinux_i686 *win32 *i386"
-          CIBW_ARCHS_LINUX: "x86_64 aarch64"
-          CIBW_ARCHS_MACOS: "auto arm64"
-          CIBW_BEFORE_BUILD: "pip install numpy scikit-image"
-          CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
-          CIBW_BUILD_VERBOSITY: "1"
+      - name: Install cibuildwheel
+        run: python -m pip install --upgrade cibuildwheel
 
-      - name: Store built wheels
+      - name: Build wheels
+        run: |
+          cibuildwheel --output-dir wheelhouse \
+            ${CIBW_BEFORE_BUILD:+--before-build "$CIBW_BEFORE_BUILD"}
+        env:
+          CIBW_ARCHS_LINUX: ${{ matrix.arch }}
+          CIBW_BEFORE_BUILD: "pip install numpy scikit-image"
+          CIBW_BUILD_VERBOSITY: "1"
+          CIBW_SKIP: "pp* cp3?-manylinux_i686 *win32 *i386"
+          CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
+
+      - name: Upload Linux wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}
-          path: ./wheelhouse
+          name: wheels-linux-${{ matrix.arch }}
+          path: wheelhouse
+
+  build_windows:
+    name: Build Windows wheels
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install cibuildwheel
+        run: python -m pip install --upgrade cibuildwheel
+
+      - name: Build wheels
+        run: cibuildwheel --output-dir wheelhouse
+        env:
+          CIBW_SKIP: "*-arm64"
+
+      - name: Upload Windows wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-windows
+          path: wheelhouse
+
+  build_macos:
+    name: Build macOS wheels
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install cibuildwheel
+        run: python -m pip install --upgrade cibuildwheel
+
+      - name: Build wheels
+        run: cibuildwheel --output-dir wheelhouse
+        env:
+          CIBW_ARCHS_MACOS: "x86_64 arm64"
+
+      - name: Upload macOS wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-macos
+          path: wheelhouse
 
   build_sdist:
     name: Build source distribution
@@ -54,12 +99,12 @@ jobs:
           python-version: '3.9'
 
       - name: Install build dependencies
-        run: python -m pip install build
+        run: python -m pip install --upgrade build
 
       - name: Build sdist
         run: python -m build --sdist
 
-      - name: Store sdist
+      - name: Upload sdist
         uses: actions/upload-artifact@v4
         with:
           name: sdist
@@ -67,32 +112,43 @@ jobs:
 
   publish:
     name: Publish to PyPI
-    needs: [build, build_sdist]
+    needs: [build_linux, build_windows, build_macos, build_sdist]
     runs-on: ubuntu-latest
-    # Publish only when a tag is pushed
-    if: startsWith(github.ref, 'refs/tags/')
-    # Use trusted publishing
+    # if: startsWith(github.ref, 'refs/tags/')
+    if: false
     environment:
       name: pypi
-      url: https://pypi.org/p/koba
+      url: https://pypi.org/project/koba
     permissions:
       id-token: write
 
     steps:
-      - name: Download all artifacts
+      - name: Download Linux wheels
         uses: actions/download-artifact@v4
         with:
-          # The pattern needs to match the names of the artifacts uploaded in the build jobs
-          pattern: wheels-*
+          pattern: wheels-linux-*
           path: dist/
           merge-multiple: true
 
-      - name: Download sdist artifact
+      - name: Download Windows wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-windows
+          path: dist/
+
+      - name: Download macOS wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-macos
+          path: dist/
+
+      - name: Download sdist
         uses: actions/download-artifact@v4
         with:
           name: sdist
           path: dist/
 
-      #- name: Publish package to PyPI
-      #  uses: pypa/gh-action-pypi-publish@release/v1
-      #  uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          token: ${{ secrets.PYPI_API_TOKEN }}
