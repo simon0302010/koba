@@ -10,7 +10,10 @@ ENGINES = ["brightness", "ssim", "diff", "mse", "ncc", "hist", "cosine"]
 def test_compare_perfect_match(engine, mocker):
     block = np.full((10, 10), 128, dtype=np.uint8)
 
-    mocker.patch('koba.core.unify.get_char', return_value=block)
+    if engine in ("diff", "brightness"):
+        mocker.patch('koba.core._unify_optim.get_char', return_value=block)
+    else:
+        mocker.patch('koba.core.unify.get_char', return_value=block)
 
     similarity = unify.compare_character('a', block, False, engine)
 
@@ -27,7 +30,10 @@ def test_compare_perfect_mismatch(engine, mocker):
     black_block = np.zeros((10, 10), dtype=np.uint8)
     white_block = np.full((10, 10), 255, dtype=np.uint8)
 
-    mocker.patch('koba.core.unify.get_char', return_value=white_block)
+    if engine in ("diff", "brightness"):
+        mocker.patch('koba.core._unify_optim.get_char', return_value=white_block)
+    else:
+        mocker.patch('koba.core.unify.get_char', return_value=white_block)
 
     similarity = unify.compare_character('a', black_block, False, engine)
 

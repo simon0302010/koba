@@ -10,9 +10,16 @@ from PIL import Image, ImageOps
 
 from koba.core import charsets, unify
 
-def process_block(args):
-    block, characters, engine, save_chars = args
-    return unify.get_character(block, characters, save_chars, engine)
+def init_worker(characters_for_worker):
+    """Initializer for each worker process."""
+    unify.set_worker_characters(characters_for_worker)
+
+def chunk_list(data, n):
+    """Splits a list into n roughly equal chunks."""
+    if n <= 0:
+        return [data]
+    k, m = divmod(len(data), n)
+    return [data[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n)]
 
 def calculate_block_sizes(width, height, char_aspect, scale):
     terminal_width = os.get_terminal_size().columns
@@ -44,7 +51,12 @@ def calculate_block_sizes(width, height, char_aspect, scale):
         
     return block_widths, block_heights, chars_width
 
-def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, save_blocks, start_char, end_char, save_chars, font, single_threaded, show_progress=False):
+def process(
+    img, char_aspect, scale, engine, color, invert, stretch_contrast, 
+    save_blocks, start_char, end_char, save_chars, font, 
+    single_threaded, show_progress=False, 
+    executor=None, block_cache=None, characters=None
+):
     if color:
         img_color = img.convert("RGB")
         img_arr_color = np.array(img_color)
@@ -62,8 +74,6 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
     block_widths, block_heights, chars_width = calculate_block_sizes(width, height, char_aspect, scale)
 
     logging.debug(f"Image will be {chars_width}x{len(block_heights)} chars.")
-    logging.debug(f"Block widths: {block_widths[:5]}... (total {len(block_widths)})")
-    logging.debug(f"Block heights: {block_heights[:5]}... (total {len(block_heights)})")
 
     if min(block_heights + block_widths) <= 7 and str(engine).lower() == "ssim":
         logging.critical("Image blocks are too small for SSIM. Please use another engine.")
@@ -92,75 +102,63 @@ def process(img, char_aspect, scale, engine, color, invert, stretch_contrast, sa
                 x += bw
             y += bh
     
-    if color:
-        if len(block_colors) != len(blocks):
-            logging.critical("Block colors don't match the blocks. Falling back to grayscale.")
-            color = False
-        else:
-            logging.debug(f"Block colors: {block_colors[:3]} ...")
-    
-    logging.debug(f"{len(blocks)} blocks created.")
-    
     if save_blocks:
-        logging.info("Saving image blocks...")
-        blocks_dir = "blocks"
-        os.makedirs(blocks_dir, exist_ok=True)
+        os.makedirs("blocks", exist_ok=True)
         for idx, block in enumerate(blocks):
-            img_block = Image.fromarray(block)
-            img_block.save(os.path.join(blocks_dir, f"{idx:04d}.png"))
+            Image.fromarray(block).save(os.path.join("blocks", f"{idx:04d}.png"))
     
     print_chars = ""
     
     if start_char == end_char:
         all_chars = chr(start_char) * len(blocks)
     else:
-        characters = charsets.get_range(start_char, end_char)
-        all_chars = ""
+        frame_results_map = {}
+        unique_blocks_map = {block.tobytes(): block for block in blocks}
 
-        # prepare arguments
-        unique_blocks = {block.tobytes(): block for block in blocks}
-        unique_block_args = [(block, characters, engine.lower(), save_chars) for block in unique_blocks.values()]
-
-        if font:
-            unify.font_path = font
-
-        block_results = {}
-        if not single_threaded:
-            with concurrent.futures.ProcessPoolExecutor() as executor:
-                future_to_block = {
-                    executor.submit(unify.get_character, *arg): arg[0] for arg in unique_block_args
-                }
-                try:
-                    for future in tqdm(
-                        concurrent.futures.as_completed(future_to_block),
-                        total=len(future_to_block),
-                        desc="Processing unique blocks",
-                        disable=not show_progress
-                    ):
-                        block = future_to_block[future]
-                        block_results[block.tobytes()] = future.result()
-                except ValueError as e:
-                    logging.critical(str(e))
-                    sys.exit(1)
+        if block_cache is not None:
+            blocks_to_process = []
+            for key, block in unique_blocks_map.items():
+                if key in block_cache:
+                    frame_results_map[key] = block_cache[key]
+                    block_cache.move_to_end(key)
+                else:
+                    blocks_to_process.append(block)
         else:
-            for args in tqdm(
-                unique_block_args,
-                desc="Processing unique blocks (single-threaded)",
-                disable=not show_progress
-            ):
-                block, characters, engine, save_chars = args
-                result = unify.get_character(block, characters, save_chars, engine)
-                block_results[block.tobytes()] = result
-
-        results = [block_results[block.tobytes()] for block in blocks]
+            blocks_to_process = list(unique_blocks_map.values())
         
-        all_chars = "".join(results)
+        if blocks_to_process:
+            new_results = {}
+            if not single_threaded and executor:
+                n_workers = executor._max_workers
+                if not n_workers or n_workers <= 0: n_workers = 1
+                block_chunks = chunk_list(blocks_to_process, n_workers)
+                chunk_args = [(chunk, engine.lower(), save_chars) for chunk in block_chunks if chunk]
+                futures = [executor.submit(unify.process_blocks_batch, *arg) for arg in chunk_args]
+                for future in concurrent.futures.as_completed(futures):
+                    new_results.update(future.result())
+            else:
+                if characters is None:
+                    characters = charsets.get_range(start_char, end_char)
+                init_worker(characters)
+                for block in tqdm(blocks_to_process, desc="Processing unique blocks", disable=not show_progress):
+                    new_results[block.tobytes()] = unify.get_character(block, engine.lower(), save_chars)
+
+            if block_cache is not None:
+                block_cache.update(new_results)
+                while len(block_cache) > 1000000:
+                    block_cache.popitem(last=False)
+            frame_results_map.update(new_results)
+
+        results = [frame_results_map.get(block.tobytes()) for block in blocks]
+        all_chars = "".join(filter(None, results))
     
     lines = [all_chars[i:i+chars_width] for i in range(0, len(all_chars), chars_width)]
-    flat_chars = "".join(lines)
-    logging.debug(f"Char count: {len(flat_chars)}")
-    logging.debug(f"Colored blocks: {len(block_colors)}")
 
+    if not color:
+        return "\n".join(lines)
+
+    # Apply colors
+    print_chars = ""
     color_idx = 0
     for c in '\n'.join(lines):
         if c == '\n':
