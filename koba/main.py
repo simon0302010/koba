@@ -12,6 +12,8 @@ import collections
 from PIL import Image, ImageSequence, UnidentifiedImageError
 from moviepy import VideoFileClip
 from tqdm import tqdm
+from rich.console import Console
+from rich.text import Text
 
 from koba import __version__
 from koba.core import core
@@ -99,6 +101,7 @@ logging.basicConfig(
     help="Enables color and uses â–ˆ (U+2588) to improve processing speed. Only recommended for animated pictures."
 )
 def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font, char_range, stretch_contrast, scale, invert, single_threaded, color, fast_color):
+    console = Console()
     # update logging level
     logging.getLogger().setLevel(getattr(logging, logging_level.upper(), logging.ERROR))
     
@@ -247,4 +250,8 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
                     print("\nExiting.")
                     break
     else:
-        print(all_frames[0])
+        frame = all_frames[0]
+        if color:
+            console.print(Text.from_ansi(frame))
+        else:
+            print(frame)
