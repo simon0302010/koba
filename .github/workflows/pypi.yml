@@ -33,7 +33,7 @@ jobs:
           # Skip PyPy and 32-bit builds on Linux
           CIBW_SKIP: "pp* cp3?-manylinux_i686 *win32 *i386"
           # Build for aarch64 on Linux using QEMU
-          CIBW_ARCHS_LINUX: "auto aarch64"
+          CIBW_ARCHS_LINUX: "x86_64 aarch64"
           # Build for both x86_64 and arm64 (Apple Silicon) on macOS
           CIBW_ARCHS_MACOS: "auto arm64"
           # Pre-install large dependencies to speed up build
@@ -99,4 +99,5 @@ jobs:
           path: dist/
 
       #- name: Publish package to PyPI
+      #  uses: pypa/gh-action-pypi-publish@release/v1
       #  uses: pypa/gh-action-pypi-publish@release/v1
