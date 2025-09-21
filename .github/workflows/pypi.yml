@@ -37,8 +37,10 @@ jobs:
           # Build for both x86_64 and arm64 (Apple Silicon) on macOS
           CIBW_ARCHS_MACOS: "auto arm64"
           # Pre-install large dependencies to speed up build
-          CIBW_BEFORE_BUILD: "pip install numpy scikit-image"
+          CIBW_BEFORE_BUILD: "pip install --only-binary :all: numpy scikit-image"
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
+          # Increase verbosity to debug skipped builds
+          CIBW_BUILD_VERBOSITY: "1"
 
       - name: Store built wheels
         uses: actions/upload-artifact@v4
