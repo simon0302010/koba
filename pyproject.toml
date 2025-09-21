@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "koba"
-version = "0.5.0"
+version = "0.6.0"
 description = "Terminal Image/Video Renderer"
 readme = "README.md"
 requires-python = ">=3.9,<4.0"

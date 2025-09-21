@@ -31,7 +31,7 @@ jobs:
           cibuildwheel --output-dir wheelhouse
         env:
           CIBW_ARCHS_LINUX: ${{ matrix.arch }}
-          CIBW_BEFORE_ALL: "pip install numpy scikit-image"
+          CIBW_BEFORE_ALL: "pip install numpy"
           CIBW_SKIP: "pp* cp3?-manylinux_i686 *win32 *i386"
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
           CIBW_BUILD_VERBOSITY: "1"
@@ -112,7 +112,7 @@ jobs:
     name: Publish to PyPI
     needs: [build_linux, build_windows, build_macos, build_sdist]
     runs-on: ubuntu-latest
-    if: false
+    if: startsWith(github.ref, 'refs/tags/')
     environment:
       name: pypi
       url: https://pypi.org/project/koba
