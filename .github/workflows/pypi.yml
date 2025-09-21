@@ -1,10 +1,9 @@
-# .github/workflows/pypi.yml
 name: Publish Python distributions to PyPI
 
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*.*.*'  # Only version tags
   workflow_dispatch:
 
 jobs:
@@ -27,16 +26,15 @@ jobs:
       - name: Install cibuildwheel
         run: python -m pip install --upgrade cibuildwheel
 
-      - name: Build wheels
+      - name: Build Linux wheels
         run: |
-          cibuildwheel --output-dir wheelhouse \
-            ${CIBW_BEFORE_BUILD:+--before-build "$CIBW_BEFORE_BUILD"}
+          cibuildwheel --output-dir wheelhouse
         env:
           CIBW_ARCHS_LINUX: ${{ matrix.arch }}
-          CIBW_BEFORE_BUILD: "pip install numpy scikit-image"
-          CIBW_BUILD_VERBOSITY: "1"
+          CIBW_BEFORE_ALL: "pip install numpy scikit-image"
           CIBW_SKIP: "pp* cp3?-manylinux_i686 *win32 *i386"
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
+          CIBW_BUILD_VERBOSITY: "1"
 
       - name: Upload Linux wheels
         uses: actions/upload-artifact@v4
@@ -54,7 +52,7 @@ jobs:
       - name: Install cibuildwheel
         run: python -m pip install --upgrade cibuildwheel
 
-      - name: Build wheels
+      - name: Build Windows wheels
         run: cibuildwheel --output-dir wheelhouse
         env:
           CIBW_SKIP: "*-arm64"
@@ -75,7 +73,7 @@ jobs:
       - name: Install cibuildwheel
         run: python -m pip install --upgrade cibuildwheel
 
-      - name: Build wheels
+      - name: Build macOS wheels
         run: cibuildwheel --output-dir wheelhouse
         env:
           CIBW_ARCHS_MACOS: "x86_64 arm64"
@@ -114,7 +112,6 @@ jobs:
     name: Publish to PyPI
     needs: [build_linux, build_windows, build_macos, build_sdist]
     runs-on: ubuntu-latest
-    # if: startsWith(github.ref, 'refs/tags/')
     if: false
     environment:
       name: pypi
