@@ -32,7 +32,8 @@ A terminal image renderer that can construct images using any set of unicode sym
 
 ## Demo
 
-Click the image to watch the video on YouTube:
+Click the image to watch a demo on YouTube:
+
 [![Video Demo](http://img.youtube.com/vi/1B3pHQXGauI/0.jpg)](http://www.youtube.com/watch?v=1B3pHQXGauI "Bad Apple in ASCII Art")
 
 ## Installation
