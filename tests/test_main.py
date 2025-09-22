@@ -26,7 +26,7 @@ def test_cli_file_not_found():
     assert result.exit_code != 0
     assert "does not exist" in result.output
 
-def test_cli_bad_char_range(caplog):
+def test_cli_bad_char_range():
     runner = CliRunner()
     img = Image.new('L', (10, 10), color='black')
     test_image_path = 'test_image.png'
@@ -36,6 +36,5 @@ def test_cli_bad_char_range(caplog):
 
     os.remove(test_image_path)
 
-    assert result.exit_code != 0
-    assert isinstance(result.exception, SystemExit)
-    assert "Wrong format for char-range." in caplog.text
+    assert result.exit_code == 2
+    assert "Invalid value" in result.output
