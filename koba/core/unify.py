@@ -13,7 +13,7 @@ def set_worker_characters(characters):
     WORKER_CHARACTERS = characters
 
 def compare_character(char, block_arr, save_chars, engine):
-    if engine == "diff" or engine == "brightness":
+    if engine in ("diff", "brightness"):
         return _unify_optim.compare_character(char, block_arr, save_chars, engine)
     height, width = block_arr.shape
     
