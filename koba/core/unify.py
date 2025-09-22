@@ -2,7 +2,7 @@ from PIL import Image
 from skimage.metrics import structural_similarity as ssim
 import numpy as np
 
-from ._unify_shared import get_char, pre_render_characters, crop_image, get_font
+from ._unify_shared import get_char, pre_render_characters, crop_image, get_font, font_path
 from . import _unify_optim
 
 WORKER_CHARACTERS = None

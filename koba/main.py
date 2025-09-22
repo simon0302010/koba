@@ -113,15 +113,15 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
         logging.critical("Please provide a font in TTF format.")
         sys.exit(1)
 
-    split_range = char_range.split("-")
-    start_char = split_range[0]
-    end_char = split_range[1]
-    if start_char.isnumeric() and end_char.isnumeric():
-        start_char = int(start_char)
-        end_char = int(end_char)
-    else:
-        logging.critical("Wrong format for char-range.")
-        sys.exit(1)
+    try:
+        split_range = char_range.split('-')
+        if len(split_range) != 2:
+            raise ValueError()
+        start_char, end_char = int(split_range[0]), int(split_range[1])
+        if start_char >= end_char:
+            raise click.BadParameter("The start of the character range must be less than the end.")
+    except (ValueError, IndexError):
+        raise click.BadParameter("The character range must be in the format 'start-end' (e.g., '32-126') with integers.")
     
     media_type = None
     
@@ -134,7 +134,7 @@ def main(file, char_aspect, logging_level, save_blocks, save_chars, engine, font
         else:
             media_type = "gif"
         frames = [frame.copy() for frame in ImageSequence.Iterator(img)]
-    except UnidentifiedImageError:
+    except (UnidentifiedImageError, OSError):
         try:
             clip = VideoFileClip(file)
             frame_count = int(clip.fps * clip.duration)

@@ -130,7 +130,8 @@ def process(
             new_results = {}
             if not single_threaded and executor:
                 n_workers = executor._max_workers
-                if not n_workers or n_workers <= 0: n_workers = 1
+                if not n_workers or n_workers <= 0:
+                    n_workers = 1
                 block_chunks = chunk_list(blocks_to_process, n_workers)
                 chunk_args = [(chunk, engine.lower(), save_chars) for chunk in block_chunks if chunk]
                 futures = [executor.submit(unify.process_blocks_batch, *arg) for arg in chunk_args]
