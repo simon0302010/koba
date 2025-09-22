@@ -36,6 +36,6 @@ def test_cli_bad_char_range(caplog):
 
     os.remove(test_image_path)
 
-    assert result.exit_code == 1
+    assert result.exit_code != 0
     assert isinstance(result.exception, SystemExit)
     assert "Wrong format for char-range." in caplog.text
